@@ -110,6 +110,11 @@ class Indexed c => Shrinkable c where
   filterCol :: (Index c -> Bool) -> c -> c
   filterColF :: Monad f => (Index c -> f Bool) -> c -> f c
 
+-- class Indexed c => Rowed c where
+--   data Row c :: *
+--   foldRow :: Monad f => F.Fold (Row c) a -> c -> a
+--   addRow :: Row c -> c -> c
+
 valueToType :: Value -> ValueType
 valueToType (ValueString _) = ValueTypeString
 valueToType (ValueInteger _) = ValueTypeInteger
@@ -216,3 +221,21 @@ exampleDecl = Lookup
   [ ("id", ValueTypeInteger)
   , ("name", ValueTypeString)
   ]
+
+exampleObj2 :: Lookup String Value
+exampleObj2 = Lookup
+  [ ("id", ValueInteger 43)
+  , ("name", ValueString "bar")
+  ]
+
+exampleColMaj :: Lookup String [(Integer, Value)]
+exampleColMaj = Lookup
+  [ ("id", [(80, ValueInteger 42), (81, ValueInteger 43)])
+  , ("name", [(80, ValueString "foo"), (81, ValueString "bar")])
+  ]
+
+exampleRowMaj :: Lookup Integer [(String, Value)]
+exampleRowMaj =
+  let (Lookup o1) = exampleObj
+      (Lookup o2) = exampleObj2
+  in Lookup [ (80, o1), (81, o2) ]
