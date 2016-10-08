@@ -5,6 +5,10 @@ module Lib
     ) where
 
 import qualified Control.Foldl as F
+import qualified Data.Map.Strict as M
+import Data.Map.Strict (Map)
+import qualified Data.HashMap.Strict as HM
+import Data.HashMap.Strict (HashMap)
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
@@ -72,6 +76,9 @@ data Value =
 newtype Lookup k v = Lookup [(k, v)]
   deriving (Show, Eq)
 
+-- newtype Frame r c t v = Frame [(c, t)] [(r, v)]
+--   deriving (Show, Eq)
+
 class Indexed c where
   type Index c :: *
   type Data c :: *
@@ -133,6 +140,44 @@ instance Eq k => Indexed (Lookup k v) where
   foldWithIndexF ff (Lookup os) = F.foldM ff os
   foldIndex ff (Lookup os) = F.fold ff (fst <$> os)
   foldIndexF ff (Lookup os) = F.foldM ff (fst <$> os)
+
+instance (Eq k, Ord k) => Indexed (Map k v) where
+  type Index (Map k v) = k
+  type Data (Map k v) = k
+
+  hasCol name m = undefined
+  dropCol name m = undefined
+  mapCol name fn m = undefined
+  mapColF name fn m = undefined
+  mapWithIndex f m = undefined
+  mapWithIndexF f m = undefined
+  mapIndex f m = undefined
+  mapIndexF f m = undefined
+  foldCol name ff m = undefined
+  foldColF name ff m = undefined
+  foldWithIndex ff m = undefined
+  foldWithIndexF ff m = undefined
+  foldIndex ff m = undefined
+  foldIndexF ff m = undefined
+
+instance Eq k => Indexed (HashMap k v) where
+  type Index (HashMap k v) = k
+  type Data (HashMap k v) = k
+
+  hasCol name m = undefined
+  dropCol name m = undefined
+  mapCol name fn m = undefined
+  mapColF name fn m = undefined
+  mapWithIndex f m = undefined
+  mapWithIndexF f m = undefined
+  mapIndex f m = undefined
+  mapIndexF f m = undefined
+  foldCol name ff m = undefined
+  foldColF name ff m = undefined
+  foldWithIndex ff m = undefined
+  foldWithIndexF ff m = undefined
+  foldIndex ff m = undefined
+  foldIndexF ff m = undefined
 
 exampleObj :: Lookup String Value
 exampleObj = Lookup
