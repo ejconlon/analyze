@@ -4,6 +4,8 @@ module Lib
     ( someFunc
     ) where
 
+import qualified Control.Foldl as F
+
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
 
@@ -31,6 +33,13 @@ lookupMapF name fn ((n, v):xs) =
   if name == n
     then (\v' -> (n, v') : xs) <$> (fn v)
     else lookupMapF name fn xs
+
+lookupMapWithIndex :: (a -> b -> b) -> [(a, b)] -> [(a, b)]
+lookupMapWithIndex _ [] = []
+lookupMapWithIndex fn ((n, v):xs) = (n, (fn n v)) : (lookupMapWithIndex fn xs)
+
+lookupMapWithIndexF :: Applicative f => (a -> b -> f b) -> [(a, b)] -> f [(a, b)]
+lookupMapWithIndexF f = traverse (\(n, v) -> ((\v' -> (n, v')) <$> f n v))
     
 lookupImap :: (a -> a) -> [(a, b)] -> [(a, b)]
 lookupImap _ [] = []
@@ -85,11 +94,13 @@ class Matrixy c where
   mapIndexF :: Applicative f => (Index c -> f (Index c)) -> c -> f c
   mapCol :: Index c -> (Data c -> Data c) -> c -> c
   mapColF :: Applicative f => Index c -> (Data c -> f (Data c)) -> c -> f c
+  mapWithIndex :: (Index c -> Data c -> Data c) -> c -> c
+  mapWithIndexF :: Applicative f => (Index c -> Data c -> f (Data c)) -> c -> f c
   hasCol :: Index c -> c -> Bool
   dropCol :: Index c -> c -> c
   setCol :: Index c -> Row c -> c -> c  
   --foldCol :: Index c -> Fold (Data c) m -> c -> m
-  --foldAll :: Fold (Row c) m -> c -> m
+  --foldColdWithIndex :: Fold (Index c, Data c) m -> c -> m
 
 testMatrixy :: c -> Bool
 testMatrixy = undefined
@@ -130,6 +141,8 @@ instance Matrixy Object where
   mapIndexF f (Object os) = Object <$> lookupImapF f os
   mapCol name fn (Object os) = Object (lookupMap name fn os)
   mapColF name fn (Object os) = Object <$> lookupMapF name fn os
+  mapWithIndex f (Object os) = Object (lookupMapWithIndex f os)
+  mapWithIndexF f (Object os) = Object <$> lookupMapWithIndexF f os
   hasCol name (Object os) = lookupHas name os
   dropCol name (Object os) = Object (lookupDrop name os)
   setCol name value = mapCol name (const value)
