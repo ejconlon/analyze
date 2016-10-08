@@ -69,19 +69,7 @@ data Value =
   | ValueDouble Double
   deriving (Show, Eq)
 
-newtype Object = Object [(String, Value)]
-  deriving (Show, Eq)
-  
-newtype Record = Record [Value]
-  deriving (Show, Eq)
-  
-newtype Header = Header [String]
-  deriving (Show, Eq)
-  
-newtype Decl = Decl [(String, ValueType)]
-  deriving (Show, Eq)
-  
-data Frame = Frame Decl [Record]
+newtype Lookup k v = Lookup [(k, v)]
   deriving (Show, Eq)
 
 class Matrixy c where
@@ -122,76 +110,42 @@ bindDouble :: (Double -> Value) -> Value -> Value
 bindDouble fn (ValueDouble d) = fn d
 bindDouble _ v = v
 
-objToRec :: Object -> Record
-objToRec (Object os) = Record (snd <$> os)
-
-objToHead :: Object -> Header
-objToHead (Object os) = Header (fst <$> os)
-
-objToDecl :: Object -> Decl
-objToDecl (Object os) = Decl ((valueToType <$>) <$> os)
-
-instance Matrixy Object where
-  type Index Object = String
-  type Data Object = Value
-  type Row Object = Value
+instance Eq k => Matrixy (Lookup k v) where
+  type Index (Lookup k v) = k
+  type Data (Lookup k v) = v
+  type Row (Lookup k v) = v
     
-  columns (Object os) = fst <$> os
-  mapIndex f (Object os) = Object (lookupImap f os)
-  mapIndexF f (Object os) = Object <$> lookupImapF f os
-  mapCol name fn (Object os) = Object (lookupMap name fn os)
-  mapColF name fn (Object os) = Object <$> lookupMapF name fn os
-  mapWithIndex f (Object os) = Object (lookupMapWithIndex f os)
-  mapWithIndexF f (Object os) = Object <$> lookupMapWithIndexF f os
-  hasCol name (Object os) = lookupHas name os
-  dropCol name (Object os) = Object (lookupDrop name os)
+  columns (Lookup os) = fst <$> os
+  mapIndex f (Lookup os) = Lookup (lookupImap f os)
+  mapIndexF f (Lookup os) = Lookup <$> lookupImapF f os
+  mapCol name fn (Lookup os) = Lookup (lookupMap name fn os)
+  mapColF name fn (Lookup os) = Lookup <$> lookupMapF name fn os
+  mapWithIndex f (Lookup os) = Lookup (lookupMapWithIndex f os)
+  mapWithIndexF f (Lookup os) = Lookup <$> lookupMapWithIndexF f os
+  hasCol name (Lookup os) = lookupHas name os
+  dropCol name (Lookup os) = Lookup (lookupDrop name os)
   setCol name value = mapCol name (const value)
 
---instance Matrixy Frame where
---  type Index Frame = String
---  type Data Frame = Value
---  type Row Frame = Record
---  
---  columns = undefined
---  mapCol = undefined
---  mapColF = undefined
---  hasCol = undefined
---  dropCol = undefined
---  setCol = undefined
-
-mapRow :: (Record -> Record) -> (Frame -> Frame)
-mapRow = undefined
-
--- Fixtures
-
-exampleObj :: Object
-exampleObj = Object
+exampleObj :: Lookup String Value
+exampleObj = Lookup
   [ ("id", ValueInteger 42)
   , ("name", ValueString "foo")
   ]
 
-exampleRecord :: Record
-exampleRecord = Record
+exampleRecord :: [Value]
+exampleRecord =
   [ ValueInteger 42
   , ValueString "foo"
   ]
 
-exampleHeader :: Header
-exampleHeader = Header
+exampleHeader :: [String]
+exampleHeader =
   [ "id"
   , "name"
   ]
 
-exampleDecl :: Decl
-exampleDecl = Decl
+exampleDecl :: Lookup String ValueType
+exampleDecl = Lookup
   [ ("id", ValueTypeInteger)
   , ("name", ValueTypeString)
   ]
-  
--- Tests
-
-test :: Bool
-test = 
-  (objToRec exampleObj == exampleRecord) &&
-  (objToHead exampleObj == exampleHeader) &&
-  (objToDecl exampleObj == exampleDecl)
