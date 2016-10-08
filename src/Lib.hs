@@ -1,4 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveTraversable #-}
@@ -22,17 +21,17 @@ import Data.Map.Strict (Map)
 import qualified Data.HashMap.Strict as HM
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
+import Data.Maybe (isJust)
 import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.Vector as V
 import Data.Vector (Vector)
+import Pipes as P
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
 
 -- Preamble
-
--- TODO these are right folds
 
 lookupHas :: Eq a => a -> [(a, b)] -> Bool
 lookupHas _ [] = False
@@ -151,18 +150,6 @@ getDouble :: Value -> Maybe Double
 getDouble (ValueDouble d) = Just d
 getDouble _ = Nothing
 
-bindText :: (Text -> Value) -> Value -> Value
-bindText fn (ValueText s) = fn s
-bindText _ v = v
-
-bindInteger :: (Integer -> Value) -> Value -> Value
-bindInteger fn (ValueInteger i) = fn i
-bindInteger _ v = v
-
-bindDouble :: (Double -> Value) -> Value -> Value
-bindDouble fn (ValueDouble d) = fn d
-bindDouble _ v = v
-
 instance Eq k => Indexed Lookup k where
   hasCol name (Lookup os) = lookupHas name os
   mapIndexM f (Lookup os) = Lookup <$> lookupImapF f os
@@ -229,9 +216,33 @@ exampleColMaj = Lookup
   , ("name", [ValueText "foo", ValueText "bar"])
   ]
 
-data Frame t k v = Frame (Vector k) (t (Vector v)) deriving (Functor, Foldable, Traversable)
+data Frame k v = Frame (Vector k) [Vector v] deriving (Functor, Foldable, Traversable)
 
-instance (Eq k) => Indexed (Frame t) k where
+data PFrame m k v = PFrame (Vector k) (P.Producer (Vector v) m ())
+
+instance Monad m => Functor (PFrame m k) where
+  fmap f (PFrame ks vs) = PFrame ks (P.for vs (P.yield . fmap f))
+
+instance Eq k => Indexed (PFrame m) k where
+  hasCol name (PFrame ks _) = elem name ks
+  mapIndexM f (PFrame ks vs) =
+    (\ks' -> PFrame ks' vs) <$> traverse f ks
+  foldIndexM ff (PFrame ks _) = F.foldM ff ks
+  filterColM p m = undefined
+  mapColM name fn m = undefined
+  mapWithIndexM f m = undefined
+  foldColM name ff m = undefined
+  foldWithIndexM ff m = undefined
+
+-- class Monad m => EFoldable t m where
+--   efold :: F.Fold a b -> t a -> m b
+--   efold ff = efoldM (F.generalize ff)
+--   efoldM :: F.FoldM m a b -> t a -> m b
+
+-- instance Monad m => EFoldable (Frame t k) m where
+--   efoldM ff (Frame ks vs) = 
+
+instance Eq k => Indexed Frame k where
   hasCol name (Frame ks _) = elem name ks
   mapIndexM f (Frame ks vs) =
     (\ks' -> Frame ks' vs) <$> traverse f ks
@@ -259,15 +270,18 @@ class (Indexed f k, Indexed r k) => Rowed f r k where
   filterRow p = runIdentity . filterRowM (Identity . p)
   filterRowM :: Monad m => (r k v -> m Bool) -> f k v -> m (f k v)
 
-lookups :: Functor t => Frame t k v -> t (Lookup k v)
-lookups (Frame ks vs) = Lookup . V.toList . V.zip ks <$> vs
+frameRows :: Frame k v -> [Lookup k v]
+frameRows (Frame ks vs) = Lookup . V.toList . V.zip ks <$> vs
 
-instance (MonadPlus t, Traversable t, Eq k) => Rowed (Frame t) Lookup k where
-  foldRowM ff = F.foldM ff . lookups
+frameCols :: Frame k v -> Lookup k (Vector v)
+frameCols = undefined
+
+instance Eq k => Rowed Frame Lookup k where
+  foldRowM ff = F.foldM ff . frameRows
   filterRowM p (Frame ks vs) = (\vs' -> Frame ks vs') <$> mfilterM p' vs
     where p' = p . Lookup . V.toList . V.zip ks
 
-exampleFrame :: Frame [] Text Value
+exampleFrame :: Frame Text Value
 exampleFrame = Frame names values
   where
     names = V.fromList ["id", "name"]
@@ -304,8 +318,8 @@ exampleCsv = "id,name\n" `mappend` "42,foo\n" `mappend` "43,bar\n"
 instance A.ToJSON v => A.ToJSON (Lookup Text v) where
   toJSON (Lookup vs) = A.object ((A.toJSON <$>) <$> vs)
 
-instance (Traversable t, A.ToJSON v) => A.ToJSON (Frame t Text v) where
-  toJSON frame = A.Array (V.fromList (toList (A.toJSON <$> lookups frame)))
+instance A.ToJSON v => A.ToJSON (Frame Text v) where
+  toJSON frame = A.Array (V.fromList (A.toJSON <$> frameRows frame))
 
 -- instance C.ToField v => C.ToNamedRecord (Lookup Text v) where
 --   toNamedRecord (Lookup vs) = undefined

@@ -23,6 +23,7 @@ library
                      , containers
                      , foldl
                      , hashable
+                     , pipes
                      , text
                      , unordered-containers
                      , vector
