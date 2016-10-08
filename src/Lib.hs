@@ -72,26 +72,31 @@ data Value =
 newtype Lookup k v = Lookup [(k, v)]
   deriving (Show, Eq)
 
-class Matrixy c where
+class Indexed c where
   type Index c :: *
   type Data c :: *
-  type Row c :: *
+
+  hasCol :: Index c -> c -> Bool
+
+  dropCol :: Index c -> c -> c
   
-  columns :: c -> [Index c]
-  mapIndex :: (Index c -> Index c) -> c -> c
-  mapIndexF :: Applicative f => (Index c -> f (Index c)) -> c -> f c
   mapCol :: Index c -> (Data c -> Data c) -> c -> c
   mapColF :: Applicative f => Index c -> (Data c -> f (Data c)) -> c -> f c
+
   mapWithIndex :: (Index c -> Data c -> Data c) -> c -> c
   mapWithIndexF :: Applicative f => (Index c -> Data c -> f (Data c)) -> c -> f c
-  hasCol :: Index c -> c -> Bool
-  dropCol :: Index c -> c -> c
-  setCol :: Index c -> Row c -> c -> c  
-  --foldCol :: Index c -> Fold (Data c) m -> c -> m
-  --foldColdWithIndex :: Fold (Index c, Data c) m -> c -> m
 
-testMatrixy :: c -> Bool
-testMatrixy = undefined
+  mapIndex :: (Index c -> Index c) -> c -> c
+  mapIndexF :: Applicative f => (Index c -> f (Index c)) -> c -> f c
+
+  foldCol :: Index c -> F.Fold (Data c) a -> c -> a
+  foldColF :: Monad f => Index c -> F.FoldM f (Data c) a -> c -> f a
+
+  foldWithIndex :: F.Fold (Index c, Data c) a -> c -> a
+  foldWithIndexF :: Monad f => F.FoldM f (Index c, Data c) a -> c -> f a
+
+  foldIndex :: F.Fold (Index c) a -> c -> a
+  foldIndexF :: Monad f => F.FoldM f (Index c) a -> c -> f a
 
 valueToType :: Value -> ValueType
 valueToType (ValueString _) = ValueTypeString
@@ -110,21 +115,24 @@ bindDouble :: (Double -> Value) -> Value -> Value
 bindDouble fn (ValueDouble d) = fn d
 bindDouble _ v = v
 
-instance Eq k => Matrixy (Lookup k v) where
+instance Eq k => Indexed (Lookup k v) where
   type Index (Lookup k v) = k
   type Data (Lookup k v) = v
-  type Row (Lookup k v) = v
     
-  columns (Lookup os) = fst <$> os
-  mapIndex f (Lookup os) = Lookup (lookupImap f os)
-  mapIndexF f (Lookup os) = Lookup <$> lookupImapF f os
+  hasCol name (Lookup os) = lookupHas name os
+  dropCol name (Lookup os) = Lookup (lookupDrop name os)
   mapCol name fn (Lookup os) = Lookup (lookupMap name fn os)
   mapColF name fn (Lookup os) = Lookup <$> lookupMapF name fn os
   mapWithIndex f (Lookup os) = Lookup (lookupMapWithIndex f os)
   mapWithIndexF f (Lookup os) = Lookup <$> lookupMapWithIndexF f os
-  hasCol name (Lookup os) = lookupHas name os
-  dropCol name (Lookup os) = Lookup (lookupDrop name os)
-  setCol name value = mapCol name (const value)
+  mapIndex f (Lookup os) = Lookup (lookupImap f os)
+  mapIndexF f (Lookup os) = Lookup <$> lookupImapF f os
+  foldCol name ff (Lookup os) = F.fold ff (lookup name os)
+  foldColF name ff (Lookup os) = F.foldM ff (lookup name os)
+  foldWithIndex ff (Lookup os) = F.fold ff os
+  foldWithIndexF ff (Lookup os) = F.foldM ff os
+  foldIndex ff (Lookup os) = F.fold ff (fst <$> os)
+  foldIndexF ff (Lookup os) = F.foldM ff (fst <$> os)
 
 exampleObj :: Lookup String Value
 exampleObj = Lookup
