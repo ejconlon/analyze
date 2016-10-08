@@ -12,7 +12,7 @@ module Lib
     ) where
 
 import qualified Control.Foldl as F
-import Control.Monad (filterM)
+import Control.Monad (MonadPlus(..))
 import qualified Data.Aeson as A
 import qualified Data.Csv as C
 import Data.Foldable (toList)
@@ -96,7 +96,7 @@ data Value =
 newtype Lookup k v = Lookup [(k, v)]
   deriving (Show, Eq, Monoid, Functor, Foldable, Traversable)
 
-class Traversable (r k) => Indexed r k where
+class Indexed r k where
   hasCol :: k -> r k v -> Bool
 
   mapIndex :: (k -> k) -> r k v -> r k v
@@ -231,7 +231,7 @@ exampleColMaj = Lookup
 
 data Frame t k v = Frame (Vector k) (t (Vector v)) deriving (Functor, Foldable, Traversable)
 
-instance (Traversable t, Eq k) => Indexed (Frame t) k where
+instance (Eq k) => Indexed (Frame t) k where
   hasCol name (Frame ks _) = elem name ks
   mapIndexM f (Frame ks vs) =
     (\ks' -> Frame ks' vs) <$> traverse f ks
@@ -248,16 +248,8 @@ instance (Traversable t, Eq k) => Indexed (Frame t) k where
  --  foldColM :: Monad m => k -> F.FoldM m v a -> r k v -> m a
  --  foldWithIndexM :: Monad m => F.FoldM m (k, v) a -> r k v -> m a
 
-class Traversable t => Filterable t where
-  filtering :: (a -> Bool) -> t a -> t a
-  filtering p = runIdentity . filteringM (Identity . p)
-  filteringM :: Monad m => (a -> m Bool) -> t a -> m (t a)
-
-instance Filterable [] where
-  filteringM = filterM 
-
-instance Filterable Vector where
-  filteringM = V.filterM
+mfilterM :: (MonadPlus t, Monad m) => Monad m => (a -> m Bool) -> t a -> m (t a)
+mfilterM p ta = undefined
 
 class (Indexed f k, Indexed r k) => Rowed f r k where
   foldRow :: F.Fold (r k v) a -> f k v -> a
@@ -267,12 +259,12 @@ class (Indexed f k, Indexed r k) => Rowed f r k where
   filterRow p = runIdentity . filterRowM (Identity . p)
   filterRowM :: Monad m => (r k v -> m Bool) -> f k v -> m (f k v)
 
-lookups :: Traversable t => Frame t k v -> t (Lookup k v)
+lookups :: Functor t => Frame t k v -> t (Lookup k v)
 lookups (Frame ks vs) = Lookup . V.toList . V.zip ks <$> vs
 
-instance (Filterable t, Eq k) => Rowed (Frame t) Lookup k where
+instance (MonadPlus t, Traversable t, Eq k) => Rowed (Frame t) Lookup k where
   foldRowM ff = F.foldM ff . lookups
-  filterRowM p (Frame ks vs) = (\vs' -> Frame ks vs') <$> filteringM p' vs
+  filterRowM p (Frame ks vs) = (\vs' -> Frame ks vs') <$> mfilterM p' vs
     where p' = p . Lookup . V.toList . V.zip ks
 
 exampleFrame :: Frame [] Text Value
