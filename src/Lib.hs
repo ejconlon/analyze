@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveTraversable #-}
@@ -21,6 +22,8 @@ import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
 import qualified Data.Text as T
 import Data.Text (Text)
+import qualified Data.Vector as V
+import Data.Vector (Vector)
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
@@ -91,48 +94,60 @@ data Value =
 newtype Lookup k v = Lookup [(k, v)]
   deriving (Show, Eq, Monoid, Functor, Foldable, Traversable)
 
-class Traversable (c k) => Indexed c k where
-  hasCol :: k -> c k v -> Bool
+class Traversable (r k) => Indexed r k where
+  hasCol :: k -> r k v -> Bool
 
-  mapIndex :: (k -> k) -> c k v -> c k v
+  mapIndex :: (k -> k) -> r k v -> r k v
   mapIndex fn = runIdentity . mapIndexM (Identity . fn)
 
-  mapIndexM :: Applicative m => (k -> m k) -> c k v -> m (c k v)
+  mapIndexM :: Applicative m => (k -> m k) -> r k v -> m (r k v)
 
-  foldIndex :: F.Fold k a -> c k v -> a
+  foldIndex :: F.Fold k a -> r k v -> a
   foldIndex ff = runIdentity . foldIndexM (F.generalize ff)
 
-  foldIndexM :: Monad m => F.FoldM m k a -> c k v -> m a
+  foldIndexM :: Monad m => F.FoldM m k a -> r k v -> m a
 
-  filterCol :: (k -> Bool) -> c k v -> c k v
+  filterCol :: (k -> Bool) -> r k v -> r k v
   filterCol fn = runIdentity . filterColM (Identity . fn)
 
-  filterColM :: Monad m => (k -> m Bool) -> c k v -> m (c k v)
+  filterColM :: Monad m => (k -> m Bool) -> r k v -> m (r k v)
 
-  mapCol :: k -> (v -> v) -> c k v -> c k v
+  mapCol :: k -> (v -> v) -> r k v -> r k v
   mapCol name fn = runIdentity . mapColM name (Identity . fn)
 
-  mapColM :: Applicative m => k -> (v -> m v) -> c k v -> m (c k v)
+  mapColM :: Applicative m => k -> (v -> m v) -> r k v -> m (r k v)
 
-  mapWithIndex :: (k -> v -> v) -> c k v -> c k v
+  mapWithIndex :: (k -> v -> v) -> r k v -> r k v
   mapWithIndex fn = runIdentity . mapWithIndexM (\k v -> Identity (fn k v))
 
-  mapWithIndexM :: Applicative m => (k -> v -> m v) -> c k v -> m (c k v)
+  mapWithIndexM :: Applicative m => (k -> v -> m v) -> r k v -> m (r k v)
 
-  foldCol :: k -> F.Fold v a -> c k v -> a
+  foldCol :: k -> F.Fold v a -> r k v -> a
   foldCol name ff = runIdentity . foldColM name (F.generalize ff)
 
-  foldColM :: Monad m => k -> F.FoldM m v a -> c k v -> m a
+  foldColM :: Monad m => k -> F.FoldM m v a -> r k v -> m a
 
-  foldWithIndex :: F.Fold (k, v) a -> c k v -> a
+  foldWithIndex :: F.Fold (k, v) a -> r k v -> a
   foldWithIndex ff = runIdentity . foldWithIndexM (F.generalize ff)
 
-  foldWithIndexM :: Monad m => F.FoldM m (k, v) a -> c k v -> m a
+  foldWithIndexM :: Monad m => F.FoldM m (k, v) a -> r k v -> m a
 
 valueToType :: Value -> ValueType
 valueToType (ValueText _) = ValueTypeText
 valueToType (ValueInteger _) = ValueTypeInteger
 valueToType (ValueDouble _) = ValueTypeDouble
+
+getText :: Value -> Maybe Text
+getText (ValueText s) = Just s
+getText _ = Nothing
+
+getInteger :: Value -> Maybe Integer
+getInteger (ValueInteger i) = Just i
+getInteger _ = Nothing
+
+getDouble :: Value -> Maybe Double
+getDouble (ValueDouble d) = Just d
+getDouble _ = Nothing
 
 bindText :: (Text -> Value) -> Value -> Value
 bindText fn (ValueText s) = fn s
@@ -206,57 +221,86 @@ exampleObj2 = Lookup
   , ("name", ValueText "bar")
   ]
 
-exampleColMaj :: Lookup Text [(Integer, Value)]
+exampleColMaj :: Lookup Text [Value]
 exampleColMaj = Lookup
-  [ ("id", [(80, ValueInteger 42), (81, ValueInteger 43)])
-  , ("name", [(80, ValueText "foo"), (81, ValueText "bar")])
+  [ ("id", [ValueInteger 42, ValueInteger 43])
+  , ("name", [ValueText "foo", ValueText "bar"])
   ]
 
--- addCol name values exampleColMaj
--- addRow id value exampleColMaj
+data Frame k v = Frame (Vector k) [Vector v] deriving (Show, Eq, Functor, Foldable, Traversable)
 
-exampleRowMaj :: Lookup Integer [(Text, Value)]
-exampleRowMaj =
-  let (Lookup o1) = exampleObj
-      (Lookup o2) = exampleObj2
-  in Lookup [ (80, o1), (81, o2) ]
+instance Eq k => Indexed Frame k where
+  hasCol name (Frame ks _) = elem name ks
+  mapIndexM f (Frame ks vs) =
+    (\ks' -> Frame ks' vs) <$> traverse f ks
+  foldIndexM ff (Frame ks _) = F.foldM ff ks
+  filterColM p m = undefined
+  mapColM name fn m = undefined
+  mapWithIndexM f m = undefined
+  foldColM name ff m = undefined
+  foldWithIndexM ff m = undefined
 
-data Frame r c t v = Frame (Lookup c t) (Lookup r v)
+ --  mapIndexM :: Applicative m => (k -> m k) -> r k v -> m (r k v)
+ --  foldIndexM :: Monad m => F.FoldM m k a -> r k v -> m a
+ --  filterColM :: Monad m => (k -> m Bool) -> r k v -> m (r k v)
+ --  mapColM :: Applicative m => k -> (v -> m v) -> r k v -> m (r k v)
+ --  mapWithIndexM :: Applicative m => (k -> v -> m v) -> r k v -> m (r k v)
+ --  foldColM :: Monad m => k -> F.FoldM m v a -> r k v -> m a
+ --  foldWithIndexM :: Monad m => F.FoldM m (k, v) a -> r k v -> m a
 
-exampleFrame :: Frame Integer Text ValueType [Value]
-exampleFrame = Frame types values
+class (Indexed f k, Indexed r k) => Rowed f r k where
+  foldRow :: F.Fold (r k v) a -> f k v -> a
+  foldRow ff = runIdentity . foldRowM (F.generalize ff)
+  foldRowM :: Monad m => F.FoldM m (r k v) a -> f k v -> m a
+
+instance Eq k => Rowed Frame Lookup k where
+  foldRowM ff (Frame ks vs) = F.foldM ff (Lookup . V.toList . V.zip ks <$> vs)
+
+exampleFrame :: Frame Text Value
+exampleFrame = Frame names values
   where
-    types = Lookup
-      [ ("id", ValueTypeInteger)
-      , ("name", ValueTypeText)
-      ]
-    values = Lookup
-      [ (80, [ValueInteger 42, ValueText "foo"])
-      , (81, [ValueInteger 43, ValueText "boo"])
+    names = V.fromList ["id", "name"]
+    values =
+      [ V.fromList [ValueInteger 42, ValueText "foo"]
+      , V.fromList [ValueInteger 43, ValueText "bar"]
       ]
 
--- class Rowed f rk c where
---   hasRow :: rk -> f -> Bool
+projectFold :: (v -> Maybe w) -> F.Fold w z -> F.Fold v z
+projectFold e (F.Fold step begin done) = F.Fold step' begin done
+  where
+    step' a v =
+      case e v of
+        Nothing -> a
+        Just w -> step a w
 
---   --foldRow ::  (RowIndex f, n) m -> f -> m
---   filterRow :: (RowIndex f -> Bool) ->  p m = undefined
+projectFoldM :: Applicative m => (v -> Maybe w) -> F.FoldM m w z -> F.FoldM m v z
+projectFoldM e (F.FoldM step begin done) = F.FoldM step' begin done
+  where
+    step' a v =
+      case e v of
+        Nothing -> pure a
+        Just w -> step a w
 
+maxId :: F.Fold Value (Maybe Integer)
+maxId = projectFold getInteger F.maximum
 
---newtype Transpose f = Transpose f deriving (Show, Eq)
+exampleMaxId :: Maybe Integer
+exampleMaxId = foldCol "id" maxId exampleFrame
 
--- class (Indexed r, Indexed c, Framey f r c) => Framey (Transpose f) c r
+exampleCsv :: Text
+exampleCsv = "id,name\n" `mappend` "42,foo\n" `mappend` "43,bar\n"
 
 instance A.ToJSON v => A.ToJSON (Lookup Text v) where
   toJSON (Lookup vs) = A.object ((A.toJSON <$>) <$> vs)
 
-instance A.FromJSON v => A.FromJSON (Lookup Text v) where
-  parseJSON = undefined
+instance A.ToJSON v => A.ToJSON (Frame Text v) where
+  toJSON (Frame ks vs) = A.Array (V.fromList (A.toJSON . Lookup . V.toList . V.zip ks <$> vs))
 
-instance C.ToField v => C.ToNamedRecord (Lookup Text v) where
-  toNamedRecord (Lookup vs) = undefined
+-- instance C.ToField v => C.ToNamedRecord (Lookup Text v) where
+--   toNamedRecord (Lookup vs) = undefined
 
-instance C.FromField v => C.FromNamedRecord (Lookup Text v) where
-  parseNamedRecord = undefined
+-- instance C.FromField v => C.FromNamedRecord (Lookup Text v) where
+--   parseNamedRecord = undefined
 
 -- data FrameError = FrameError deriving (Eq, Show, Typeable)
 -- instance Exception FrameError
