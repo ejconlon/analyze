@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Lib
@@ -9,6 +10,7 @@ import qualified Data.Map.Strict as M
 import Data.Map.Strict (Map)
 import qualified Data.HashMap.Strict as HM
 import Data.HashMap.Strict (HashMap)
+import Data.Hashable (Hashable)
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
@@ -77,12 +79,11 @@ data Value =
   deriving (Show, Eq)
 
 newtype Lookup k v = Lookup [(k, v)]
-  deriving (Show, Eq)
+  deriving (Show, Eq, Monoid)
 
--- newtype Frame r c t v = Frame [(c, t)] [(r, v)]
---   deriving (Show, Eq)
-
-class Indexed c where
+-- Frames are not indexed. Simpler key-value things are
+-- Basically a monotraversable lookup
+class Monoid c => Indexed c where
   type Index c :: *
   type Data c :: *
 
@@ -106,14 +107,8 @@ class Indexed c where
   foldIndex :: F.Fold (Index c) a -> c -> a
   foldIndexF :: Monad f => F.FoldM f (Index c) a -> c -> f a
 
-class Indexed c => Shrinkable c where
   filterCol :: (Index c -> Bool) -> c -> c
   filterColF :: Monad f => (Index c -> f Bool) -> c -> f c
-
--- class Indexed c => Rowed c where
---   data Row c :: *
---   foldRow :: Monad f => F.Fold (Row c) a -> c -> a
---   addRow :: Row c -> c -> c
 
 valueToType :: Value -> ValueType
 valueToType (ValueString _) = ValueTypeString
@@ -149,8 +144,6 @@ instance Eq k => Indexed (Lookup k v) where
   foldWithIndexF ff (Lookup os) = F.foldM ff os
   foldIndex ff (Lookup os) = F.fold ff (fst <$> os)
   foldIndexF ff (Lookup os) = F.foldM ff (fst <$> os)
-
-instance Eq k => Shrinkable (Lookup k v) where
   filterCol p (Lookup os) = Lookup $ lookupFilter p os
   filterColF p (Lookup os) = Lookup <$> lookupFilterF p os
 
@@ -171,12 +164,10 @@ instance (Eq k, Ord k) => Indexed (Map k v) where
   foldWithIndexF ff m = undefined
   foldIndex ff m = undefined
   foldIndexF ff m = undefined
-
-instance (Eq k, Ord k) => Shrinkable (Map k v) where
   filterCol p m = undefined
   filterColF p m = undefined
 
-instance Eq k => Indexed (HashMap k v) where
+instance (Eq k, Hashable k) => Indexed (HashMap k v) where
   type Index (HashMap k v) = k
   type Data (HashMap k v) = k
 
@@ -193,8 +184,6 @@ instance Eq k => Indexed (HashMap k v) where
   foldWithIndexF ff m = undefined
   foldIndex ff m = undefined
   foldIndexF ff m = undefined
-
-instance Eq k => Shrinkable (HashMap k v) where
   filterCol p m = undefined
   filterColF p m = undefined
 
@@ -234,8 +223,43 @@ exampleColMaj = Lookup
   , ("name", [(80, ValueString "foo"), (81, ValueString "bar")])
   ]
 
+-- addCol name values exampleColMaj
+-- addRow id value exampleColMaj
+
 exampleRowMaj :: Lookup Integer [(String, Value)]
 exampleRowMaj =
   let (Lookup o1) = exampleObj
       (Lookup o2) = exampleObj2
   in Lookup [ (80, o1), (81, o2) ]
+
+data Frame r c t v = Frame (Lookup c t) (Lookup r v)
+
+exampleFrame :: Frame Integer String ValueType [Value]
+exampleFrame = Frame types values
+  where
+    types = Lookup
+      [ ("id", ValueTypeInteger)
+      , ("name", ValueTypeString)
+      ]
+    values = Lookup
+      [ (80, [ValueInteger 42, ValueString "foo"])
+      , (81, [ValueInteger 43, ValueString "boo"])
+      ]
+
+-- data FrameError = FrameError deriving (Eq, Show, Typeable)
+-- instance Exception FrameError
+
+-- class Dual c where
+--   data DualIndex c :: *
+
+-- class Framed c where
+--   data FRowIndex c :: *
+--   data FColIndex c :: *
+--   data FDataType c :: *
+--   data FData c :: *
+--   frameHasRow :: FRowIndex c -> c -> Bool
+--   frameHasCol :: FColIndex c -> c -> Bool
+--   frameSetRow :: MonadThrow f => FRowIndex c -> Row c -> c -> f c
+--   frameSetCol :: MonadThrow f => FColIndex c -> Col c -> c -> f c
+
+
