@@ -52,12 +52,15 @@ lookupImap f ((n, v):xs) = (f n, v) : xs
 lookupImapF :: Applicative f => (a -> f a) -> [(a, b)] -> f [(a, b)]
 lookupImapF f xs = traverse (\(n, v) -> (\n' -> (n', v)) <$> f n) xs
     
-lookupDrop :: Eq a => a -> [(a, b)] -> [(a, b)]
-lookupDrop _ [] = []
-lookupDrop name ((n, v):xs) =
-  if name == n
-    then xs
-    else lookupDrop name xs
+lookupFilter :: (a -> Bool) -> [(a, b)] -> [(a, b)]
+lookupFilter f = filter (\(a, _) -> f a)
+
+lookupFilterF :: Monad f => (a -> f Bool) -> [(a, b)] -> f [(a, b)]
+lookupFilterF f [] = pure []
+lookupFilterF f (x@(k, _):xs) = do
+  v <- f k
+  w <- lookupFilterF f xs
+  return $ if v then (x:w) else w
 
 -- Types
 
@@ -84,8 +87,6 @@ class Indexed c where
   type Data c :: *
 
   hasCol :: Index c -> c -> Bool
-
-  dropCol :: Index c -> c -> c
   
   mapCol :: Index c -> (Data c -> Data c) -> c -> c
   mapColF :: Applicative f => Index c -> (Data c -> f (Data c)) -> c -> f c
@@ -104,6 +105,10 @@ class Indexed c where
 
   foldIndex :: F.Fold (Index c) a -> c -> a
   foldIndexF :: Monad f => F.FoldM f (Index c) a -> c -> f a
+
+class Indexed c => Shrinkable c where
+  filterCol :: (Index c -> Bool) -> c -> c
+  filterColF :: Monad f => (Index c -> f Bool) -> c -> f c
 
 valueToType :: Value -> ValueType
 valueToType (ValueString _) = ValueTypeString
@@ -127,7 +132,6 @@ instance Eq k => Indexed (Lookup k v) where
   type Data (Lookup k v) = v
     
   hasCol name (Lookup os) = lookupHas name os
-  dropCol name (Lookup os) = Lookup (lookupDrop name os)
   mapCol name fn (Lookup os) = Lookup (lookupMap name fn os)
   mapColF name fn (Lookup os) = Lookup <$> lookupMapF name fn os
   mapWithIndex f (Lookup os) = Lookup (lookupMapWithIndex f os)
@@ -141,12 +145,15 @@ instance Eq k => Indexed (Lookup k v) where
   foldIndex ff (Lookup os) = F.fold ff (fst <$> os)
   foldIndexF ff (Lookup os) = F.foldM ff (fst <$> os)
 
+instance Eq k => Shrinkable (Lookup k v) where
+  filterCol p (Lookup os) = Lookup $ lookupFilter p os
+  filterColF p (Lookup os) = Lookup <$> lookupFilterF p os
+
 instance (Eq k, Ord k) => Indexed (Map k v) where
   type Index (Map k v) = k
   type Data (Map k v) = k
 
   hasCol name m = undefined
-  dropCol name m = undefined
   mapCol name fn m = undefined
   mapColF name fn m = undefined
   mapWithIndex f m = undefined
@@ -159,13 +166,16 @@ instance (Eq k, Ord k) => Indexed (Map k v) where
   foldWithIndexF ff m = undefined
   foldIndex ff m = undefined
   foldIndexF ff m = undefined
+
+instance (Eq k, Ord k) => Shrinkable (Map k v) where
+  filterCol p m = undefined
+  filterColF p m = undefined
 
 instance Eq k => Indexed (HashMap k v) where
   type Index (HashMap k v) = k
   type Data (HashMap k v) = k
 
   hasCol name m = undefined
-  dropCol name m = undefined
   mapCol name fn m = undefined
   mapColF name fn m = undefined
   mapWithIndex f m = undefined
@@ -178,6 +188,10 @@ instance Eq k => Indexed (HashMap k v) where
   foldWithIndexF ff m = undefined
   foldIndex ff m = undefined
   foldIndexF ff m = undefined
+
+instance Eq k => Shrinkable (HashMap k v) where
+  filterCol p m = undefined
+  filterColF p m = undefined
 
 exampleObj :: Lookup String Value
 exampleObj = Lookup
