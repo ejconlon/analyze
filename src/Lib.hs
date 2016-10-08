@@ -12,8 +12,10 @@ module Lib
     ) where
 
 import qualified Control.Foldl as F
+import Control.Monad (filterM)
 import qualified Data.Aeson as A
 import qualified Data.Csv as C
+import Data.Foldable (toList)
 import Data.Functor.Identity (Identity(..))
 import qualified Data.Map.Strict as M
 import Data.Map.Strict (Map)
@@ -227,9 +229,9 @@ exampleColMaj = Lookup
   , ("name", [ValueText "foo", ValueText "bar"])
   ]
 
-data Frame k v = Frame (Vector k) [Vector v] deriving (Show, Eq, Functor, Foldable, Traversable)
+data Frame t k v = Frame (Vector k) (t (Vector v)) deriving (Functor, Foldable, Traversable)
 
-instance Eq k => Indexed Frame k where
+instance (Traversable t, Eq k) => Indexed (Frame t) k where
   hasCol name (Frame ks _) = elem name ks
   mapIndexM f (Frame ks vs) =
     (\ks' -> Frame ks' vs) <$> traverse f ks
@@ -240,23 +242,40 @@ instance Eq k => Indexed Frame k where
   foldColM name ff m = undefined
   foldWithIndexM ff m = undefined
 
- --  mapIndexM :: Applicative m => (k -> m k) -> r k v -> m (r k v)
- --  foldIndexM :: Monad m => F.FoldM m k a -> r k v -> m a
  --  filterColM :: Monad m => (k -> m Bool) -> r k v -> m (r k v)
  --  mapColM :: Applicative m => k -> (v -> m v) -> r k v -> m (r k v)
  --  mapWithIndexM :: Applicative m => (k -> v -> m v) -> r k v -> m (r k v)
  --  foldColM :: Monad m => k -> F.FoldM m v a -> r k v -> m a
  --  foldWithIndexM :: Monad m => F.FoldM m (k, v) a -> r k v -> m a
 
+class Traversable t => Filterable t where
+  filtering :: (a -> Bool) -> t a -> t a
+  filtering p = runIdentity . filteringM (Identity . p)
+  filteringM :: Monad m => (a -> m Bool) -> t a -> m (t a)
+
+instance Filterable [] where
+  filteringM = filterM 
+
+instance Filterable Vector where
+  filteringM = V.filterM
+
 class (Indexed f k, Indexed r k) => Rowed f r k where
   foldRow :: F.Fold (r k v) a -> f k v -> a
   foldRow ff = runIdentity . foldRowM (F.generalize ff)
   foldRowM :: Monad m => F.FoldM m (r k v) a -> f k v -> m a
+  filterRow :: (r k v -> Bool) -> f k v -> f k v
+  filterRow p = runIdentity . filterRowM (Identity . p)
+  filterRowM :: Monad m => (r k v -> m Bool) -> f k v -> m (f k v)
 
-instance Eq k => Rowed Frame Lookup k where
-  foldRowM ff (Frame ks vs) = F.foldM ff (Lookup . V.toList . V.zip ks <$> vs)
+lookups :: Traversable t => Frame t k v -> t (Lookup k v)
+lookups (Frame ks vs) = Lookup . V.toList . V.zip ks <$> vs
 
-exampleFrame :: Frame Text Value
+instance (Filterable t, Eq k) => Rowed (Frame t) Lookup k where
+  foldRowM ff = F.foldM ff . lookups
+  filterRowM p (Frame ks vs) = (\vs' -> Frame ks vs') <$> filteringM p' vs
+    where p' = p . Lookup . V.toList . V.zip ks
+
+exampleFrame :: Frame [] Text Value
 exampleFrame = Frame names values
   where
     names = V.fromList ["id", "name"]
@@ -265,16 +284,16 @@ exampleFrame = Frame names values
       , V.fromList [ValueInteger 43, ValueText "bar"]
       ]
 
-projectFold :: (v -> Maybe w) -> F.Fold w z -> F.Fold v z
-projectFold e (F.Fold step begin done) = F.Fold step' begin done
+filterFold :: (v -> Maybe w) -> F.Fold w z -> F.Fold v z
+filterFold e (F.Fold step begin done) = F.Fold step' begin done
   where
     step' a v =
       case e v of
         Nothing -> a
         Just w -> step a w
 
-projectFoldM :: Applicative m => (v -> Maybe w) -> F.FoldM m w z -> F.FoldM m v z
-projectFoldM e (F.FoldM step begin done) = F.FoldM step' begin done
+filterFoldM :: Applicative m => (v -> Maybe w) -> F.FoldM m w z -> F.FoldM m v z
+filterFoldM e (F.FoldM step begin done) = F.FoldM step' begin done
   where
     step' a v =
       case e v of
@@ -282,7 +301,7 @@ projectFoldM e (F.FoldM step begin done) = F.FoldM step' begin done
         Just w -> step a w
 
 maxId :: F.Fold Value (Maybe Integer)
-maxId = projectFold getInteger F.maximum
+maxId = filterFold getInteger F.maximum
 
 exampleMaxId :: Maybe Integer
 exampleMaxId = foldCol "id" maxId exampleFrame
@@ -293,8 +312,8 @@ exampleCsv = "id,name\n" `mappend` "42,foo\n" `mappend` "43,bar\n"
 instance A.ToJSON v => A.ToJSON (Lookup Text v) where
   toJSON (Lookup vs) = A.object ((A.toJSON <$>) <$> vs)
 
-instance A.ToJSON v => A.ToJSON (Frame Text v) where
-  toJSON (Frame ks vs) = A.Array (V.fromList (A.toJSON . Lookup . V.toList . V.zip ks <$> vs))
+instance (Traversable t, A.ToJSON v) => A.ToJSON (Frame t Text v) where
+  toJSON frame = A.Array (V.fromList (toList (A.toJSON <$> lookups frame)))
 
 -- instance C.ToField v => C.ToNamedRecord (Lookup Text v) where
 --   toNamedRecord (Lookup vs) = undefined
