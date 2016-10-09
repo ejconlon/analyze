@@ -26,6 +26,7 @@ library
                      , free
                      , hashable
                      , pipes
+                     , profunctors
                      , text
                      , unordered-containers
                      , vector

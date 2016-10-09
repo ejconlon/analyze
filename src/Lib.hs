@@ -19,12 +19,13 @@ import qualified Data.Aeson as A
 import qualified Data.Csv as C
 import Data.Foldable (toList)
 import Data.Functor.Identity (Identity(..))
-import qualified Data.Map.Strict as M
-import Data.Map.Strict (Map)
 import qualified Data.HashMap.Strict as HM
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
-import Data.Maybe (isJust)
+import qualified Data.Map.Strict as M
+import Data.Map.Strict (Map)
+import Data.Maybe (fromMaybe, isJust)
+import Data.Profunctor
 import qualified Data.Text as T
 import Data.Text (Text)
 import Data.Typeable
@@ -69,30 +70,58 @@ getDouble _ = Nothing
 
 -- Decoding
 
-data DArg m k v a = DArg k (v -> m a) deriving (Functor)
+data Arg m k v a = Arg k (F.FoldM m v a) deriving (Functor)
 
-type Decoder m k v a = Ap (DArg m k v) a
+instance Monad m => Profunctor (Arg m k) where
+  dimap l r (Arg k f) = Arg k (dimap l r f)
+
+newtype Decoder m k v a = Decoder (Ap (Arg m k v) a) deriving (Functor, Applicative)
 
 decoderKeys :: Decoder m k v a -> [k]
-decoderKeys = undefined
+decoderKeys (Decoder x) = go x
+  where
+    go :: Ap (Arg m k v) a -> [k]
+    go (Pure _) = []
+    go (Ap (Arg k _) rest) = k : (go rest)
+
+-- This is pretty sensitive to 'lets'
+apRow :: (Eq k, Hashable k, Monad m) => Ap (Arg m k v) a -> HashMap k v -> m a
+apRow (Pure a) _ = pure a
+apRow (Ap (Arg k f) rest) row = do
+  let mv = HM.lookup k row
+  z <- F.foldM f mv
+  fz <- apRow rest row
+  return (fz z)
+
+decodeRow :: (Eq k, Hashable k, Monad m) => Decoder m k v a -> HashMap k v -> m a
+decodeRow (Decoder x) = apRow x
+
+apCol :: (Eq k, Hashable k, Monad m) => Ap (Arg m k v) a -> HashMap k (Vector v) -> m a
+apCol (Pure a) _ = pure a
+apCol (Ap (Arg k f) rest) dat = do
+  let vs = fromMaybe (V.empty) (HM.lookup k dat)
+  z <- F.foldM f vs
+  fz <- apCol rest dat
+  return (fz z)
+
+decodeCol :: (Eq k, Hashable k, Monad m) => Decoder m k v a -> HashMap k (Vector v) -> m a
+decodeCol (Decoder x) = apCol x
+
+-- Decoding Values
 
 data MissingKeyError k = MissingKeyError k deriving (Show, Eq, Typeable)
 instance (Show k, Typeable k) => Exception (MissingKeyError k)
 
-runDecoder :: MonadThrow m => Decoder m k v a -> HashMap k v -> m a
-runDecoder = undefined
-
--- Decoding Values
-
 data ValueTypeError k = ValueTypeError k ValueType Value deriving (Show, Eq, Typeable)
 instance (Show k, Typeable k) => Exception (ValueTypeError k)
 
-textOrError :: (Show k, Typeable k, MonadThrow m) => k -> Value -> m Text
-textOrError _ (ValueText s) = pure s
-textOrError k v = throwM (ValueTypeError k ValueTypeText v)
+-- textOrError :: (Show k, Typeable k, MonadThrow m) => k -> Value -> m Text
+-- textOrError _ (ValueText s) = pure s
+-- textOrError k v = throwM (ValueTypeError k ValueTypeText v)
 
-argText :: (Show k, Typeable k, MonadThrow m) => k -> DArg m k Value Text
-argText k = DArg k (textOrError k)
+-- TODO Change to use first monoid
+-- argText :: (Show k, Typeable k, MonadThrow m) => k -> Arg m k Value Text
+-- argText k = Arg k (textOrError k)
 
 -- RFrame
 
@@ -114,24 +143,24 @@ rframeRows (RFrame _ vs) = V.length vs
 rframeIter :: (Eq k, Hashable k) => RFrame k v -> Vector (HashMap k v)
 rframeIter (RFrame ks vs) = HM.fromList . V.toList . V.zip ks <$> vs
 
-rframeDecode :: (Hashable k, Eq k, MonadThrow m) => Decoder m k v a -> RFrame k v -> Vector (m a)
-rframeDecode decoder rframe = runDecoder decoder <$> rframeIter rframe
+rframeDecode :: (Hashable k, Eq k, Monad m) => Decoder m k v a -> RFrame k v -> Vector (m a)
+rframeDecode decoder rframe = decodeRow decoder <$> rframeIter rframe
 
-rframeFilter :: (k -> Bool) -> RFrame k v -> RFrame k v
+rframeFilter :: (HashMap k v -> Bool) -> RFrame k v -> RFrame k v
 rframeFilter = undefined
 
--- Will throw on col missing
-rframeGetCol :: MonadThrow m => k -> RFrame k v -> m (Vector v)
-rframeGetCol = undefined
+-- -- Will throw on col missing
+-- rframeGetCol :: MonadThrow m => k -> RFrame k v -> m (Vector v)
+-- rframeGetCol = undefined
 
--- Will append if not present
--- Will throw on row length mismatch
-rframeSetCol :: MonadThrow m => k -> Vector v -> RFrame k v -> m (RFrame k v)
-rframeSetCol = undefined
+-- -- Will append if not present
+-- -- Will throw on row length mismatch
+-- rframeSetCol :: MonadThrow m => k -> Vector v -> RFrame k v -> m (RFrame k v)
+-- rframeSetCol = undefined
 
--- Will throw on col mismatch
-rframeAddRow :: MonadThrow m => HashMap k v -> RFrame k v -> m (RFrame k v)
-rframeAddRow = undefined
+-- -- Will throw on col mismatch
+-- rframeAddRow :: MonadThrow m => HashMap k v -> RFrame k v -> m (RFrame k v)
+-- rframeAddRow = undefined
 
 -- Appends row-wise, retaining column order of the first
 -- Will throw on col mismatch
@@ -150,26 +179,17 @@ data CFrame k v = CFrame
 cframeCols :: CFrame k v -> Int
 cframeCols (CFrame ks _ _) = V.length ks
 
-cframeDecode :: MonadThrow m => Decoder m k v a -> CFrame k v -> Vector (m a)
-cframeDecode = undefined
-
--- Will throw on out of bounds
-cframeGetRow :: MonadThrow m => Int -> CFrame k v -> m (HashMap k v)
-cframeGetRow = undefined
-
--- Will throw on out of bounds or col mismatch
-cframeSetRow :: MonadThrow m => Int -> HashMap k v -> CFrame k v -> m (CFrame k v)
-cframeSetRow = undefined
-
--- Will throw on col mismatch
-cframeAddRow :: MonadThrow m => HashMap k v -> CFrame k v -> m (CFrame k v)
-cframeAddRow = undefined
+cframeDecode :: (Eq k, Hashable k, Monad m) => Decoder m k v a -> CFrame k v -> m a
+cframeDecode decoder (CFrame _ _ dat) = decodeCol decoder dat
 
 -- Merge two CFrames with the given col merge function if overlapping
 -- Retains the order of columns as seen in the first then second (minus repeats)
 -- Will throw on row length mismatch
 cframeMerge :: MonadThrow m => (k -> v -> v -> v) -> CFrame k v -> CFrame k v -> m (CFrame k v)
 cframeMerge = undefined
+
+cframeFilter :: (k -> Bool) -> CFrame k v -> CFrame k v
+cframeFilter = undefined
 
 -- PFrame
 
