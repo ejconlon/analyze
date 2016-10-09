@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveTraversable #-}
@@ -5,7 +6,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
 
 module Lib
     ( someFunc
@@ -36,6 +36,10 @@ import Pipes as P
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
+
+-- Preamble
+
+type Data k = (Eq k, Hashable k, Show k, Typeable k)
 
 -- Values
 
@@ -85,7 +89,7 @@ decoderKeys (Decoder x) = go x
     go (Ap (Arg k _) rest) = k : (go rest)
 
 -- This is pretty sensitive to 'lets'
-apRow :: (Eq k, Hashable k, Monad m) => Ap (Arg m k v) a -> HashMap k v -> m a
+apRow :: (Data k, Monad m) => Ap (Arg m k v) a -> HashMap k v -> m a
 apRow (Pure a) _ = pure a
 apRow (Ap (Arg k f) rest) row = do
   let mv = HM.lookup k row
@@ -93,10 +97,10 @@ apRow (Ap (Arg k f) rest) row = do
   fz <- apRow rest row
   return (fz z)
 
-decodeRow :: (Eq k, Hashable k, Monad m) => Decoder m k v a -> HashMap k v -> m a
+decodeRow :: (Data k, Monad m) => Decoder m k v a -> HashMap k v -> m a
 decodeRow (Decoder x) = apRow x
 
-apCol :: (Eq k, Hashable k, Monad m) => Ap (Arg m k v) a -> HashMap k (Vector v) -> m a
+apCol :: (Data k, Monad m) => Ap (Arg m k v) a -> HashMap k (Vector v) -> m a
 apCol (Pure a) _ = pure a
 apCol (Ap (Arg k f) rest) dat = do
   let vs = fromMaybe (V.empty) (HM.lookup k dat)
@@ -104,7 +108,7 @@ apCol (Ap (Arg k f) rest) dat = do
   fz <- apCol rest dat
   return (fz z)
 
-decodeCol :: (Eq k, Hashable k, Monad m) => Decoder m k v a -> HashMap k (Vector v) -> m a
+decodeCol :: (Data k, Monad m) => Decoder m k v a -> HashMap k (Vector v) -> m a
 decodeCol (Decoder x) = apCol x
 
 -- Decoding Values
@@ -115,13 +119,30 @@ instance (Show k, Typeable k) => Exception (MissingKeyError k)
 data ValueTypeError k = ValueTypeError k ValueType Value deriving (Show, Eq, Typeable)
 instance (Show k, Typeable k) => Exception (ValueTypeError k)
 
--- textOrError :: (Show k, Typeable k, MonadThrow m) => k -> Value -> m Text
--- textOrError _ (ValueText s) = pure s
--- textOrError k v = throwM (ValueTypeError k ValueTypeText v)
+-- analogous to premapM
+andThen :: Monad m => F.FoldM m v a -> (a -> m b) -> F.FoldM m v b
+andThen (F.FoldM step begin done) f = F.FoldM step begin (done >=> f)
 
--- TODO Change to use first monoid
--- argText :: (Show k, Typeable k, MonadThrow m) => k -> Arg m k Value Text
--- argText k = Arg k (textOrError k)
+orElse :: Monad m => F.FoldM m v (Maybe a) -> m a -> F.FoldM m v a
+orElse f act = f `andThen` act'
+  where
+    act' Nothing = act
+    act' (Just x) = pure x
+
+require :: (Data k, MonadThrow m) => k -> (k -> v -> m a) -> Arg m k v a
+require k e = Arg k (F.generalize F.head `orElse` throwM (MissingKeyError k) `andThen` e k)
+
+textual :: (Data k, MonadThrow m) => k -> Value -> m Text
+textual _ (ValueText s) = pure s
+textual k v = throwM (ValueTypeError k ValueTypeText v)
+
+integral :: (Data k, MonadThrow m) => k -> Value -> m Integer
+integral _ (ValueInteger s) = pure s
+integral k v = throwM (ValueTypeError k ValueTypeInteger v)
+
+floating :: (Data k, MonadThrow m) => k -> Value -> m Double
+floating _ (ValueDouble s) = pure s
+floating k v = throwM (ValueTypeError k ValueTypeDouble v)
 
 -- RFrame
 
@@ -140,10 +161,10 @@ rframeCols (RFrame ks _) = V.length ks
 rframeRows :: RFrame k v -> Int
 rframeRows (RFrame _ vs) = V.length vs
 
-rframeIter :: (Eq k, Hashable k) => RFrame k v -> Vector (HashMap k v)
+rframeIter :: Data k => RFrame k v -> Vector (HashMap k v)
 rframeIter (RFrame ks vs) = HM.fromList . V.toList . V.zip ks <$> vs
 
-rframeDecode :: (Hashable k, Eq k, Monad m) => Decoder m k v a -> RFrame k v -> Vector (m a)
+rframeDecode :: (Data k, Monad m) => Decoder m k v a -> RFrame k v -> Vector (m a)
 rframeDecode decoder rframe = decodeRow decoder <$> rframeIter rframe
 
 rframeFilter :: (HashMap k v -> Bool) -> RFrame k v -> RFrame k v
@@ -179,7 +200,7 @@ data CFrame k v = CFrame
 cframeCols :: CFrame k v -> Int
 cframeCols (CFrame ks _ _) = V.length ks
 
-cframeDecode :: (Eq k, Hashable k, Monad m) => Decoder m k v a -> CFrame k v -> m a
+cframeDecode :: (Data k, Monad m) => Decoder m k v a -> CFrame k v -> m a
 cframeDecode decoder (CFrame _ _ dat) = decodeCol decoder dat
 
 -- Merge two CFrames with the given col merge function if overlapping
@@ -227,11 +248,29 @@ pframeUnpack (PFrame ks vp) = result
           Right (a, p') -> Just (a, p')
     result = (\vl -> RFrame ks (V.fromList vl)) <$> VSM.toList unfolded
 
-rowToCol :: RFrame k v -> CFrame k v
-rowToCol = undefined
+project :: (Data k, MonadThrow m) => Vector k -> HashMap k v -> m (Vector v)
+project ks row = V.mapM f ks
+  where
+    f k =
+      case HM.lookup k row of
+        Nothing -> throwM (MissingKeyError k)
+        Just v -> pure v
 
-colToRow :: CFrame k v -> RFrame k v
-colToRow = undefined
+-- kind of the inverse of rframeIter 
+projectRow :: (Data k, MonadThrow m) => Vector k -> Vector (HashMap k v) -> m (RFrame k v)
+projectRow ks rs = (\vs -> RFrame ks vs) <$> V.mapM (project ks) rs
+
+rowToCol :: Data k => RFrame k v -> CFrame k v
+rowToCol (RFrame ks vs) = CFrame ks (V.length vs) dat
+  where
+    dat = HM.fromList (V.toList (select <$> V.indexed ks))
+    select (i, k) = (k, (V.!i) <$> vs)
+
+colToRow :: Data k => CFrame k v -> RFrame k v
+colToRow (CFrame ks rs dat) = RFrame ks vs
+  where
+    vs = V.generate rs f
+    f i = (\k -> (dat HM.! k) V.! i) <$> ks
 
 -- Examples
 
@@ -304,6 +343,9 @@ exampleCsv = "id,name\n" `mappend` "42,foo\n" `mappend` "43,bar\n"
 --       case e v of
 --         Nothing -> pure a
 --         Just w -> step a w
+
+-- maxId :: MonadThrow m => F.FoldM m Text Integer
+-- maxId = require "id" integral
 
 -- maxId :: F.Fold (Lookup Text Value) (Maybe Integer)
 -- maxId = filterFold (lookupLookup "id" >=> getInteger) F.maximum
