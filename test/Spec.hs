@@ -8,9 +8,8 @@ import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.Vector as V
 import Data.Vector (Vector)
-
-main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+import Test.Tasty
+import Test.Tasty.HUnit
 
 -- Examples
 
@@ -65,3 +64,19 @@ exampleCFrame = CFrame names rows cols
 
 exampleCsv :: Text
 exampleCsv = "id,name\n" `mappend` "42,foo\n" `mappend` "43,bar\n"
+
+-- Tests
+
+testOne :: TestTree
+testOne = testCase "one" $ do
+  return ()
+
+-- Runner
+
+tests :: TestTree
+tests = testGroup "Tests"
+  [ testOne
+  ]
+
+main :: IO ()
+main = defaultMain tests
