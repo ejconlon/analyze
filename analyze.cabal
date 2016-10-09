@@ -15,7 +15,14 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Analyze
+  exposed-modules:     Analyze.CFrame
+                     , Analyze.Common
+                     , Analyze.Conversions
+                     , Analyze.Decoding
+                     , Analyze.DSL
+                     , Analyze.PFrame
+                     , Analyze.RFrame
+                     , Analyze.Values
   build-depends:       base >= 4.9 && < 5
                      , aeson
                      , exceptions

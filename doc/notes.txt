@@ -1,0 +1,35 @@
+-- Folding
+
+-- filterFold :: (v -> Maybe w) -> F.Fold w z -> F.Fold v z
+-- filterFold e (F.Fold step begin done) = F.Fold step' begin done
+--   where
+--     step' a v =
+--       case e v of
+--         Nothing -> a
+--         Just w -> step a w
+
+-- filterFoldM :: Applicative m => (v -> Maybe w) -> F.FoldM m w z -> F.FoldM m v z
+-- filterFoldM e (F.FoldM step begin done) = F.FoldM step' begin done
+--   where
+--     step' a v =
+--       case e v of
+--         Nothing -> pure a
+--         Just w -> step a w
+
+-- maxId :: MonadThrow m => F.FoldM m Text Integer
+-- maxId = require "id" integral
+
+-- maxId :: F.Fold (Lookup Text Value) (Maybe Integer)
+-- maxId = filterFold (lookupLookup "id" >=> getInteger) F.maximum
+
+-- exampleMaxId :: Maybe Integer
+-- exampleMaxId = runIdentity (foldRow maxId exampleFrame)
+
+-- instance A.ToJSON v => A.ToJSON (HashMap Text v) where
+--   toJSON (Lookup vs) = A.object ((A.toJSON <$>) <$> vs)
+
+-- instance C.ToField v => C.ToNamedRecord (Lookup Text v) where
+--   toNamedRecord (Lookup vs) = undefined
+
+-- instance C.FromField v => C.FromNamedRecord (Lookup Text v) where
+--   parseNamedRecord = undefined
