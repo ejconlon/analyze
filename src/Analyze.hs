@@ -155,6 +155,9 @@ rframeRows (RFrame _ vs) = V.length vs
 rframeIter :: Data k => RFrame k v -> Vector (Vector (k, v))
 rframeIter (RFrame ks vs) = V.zip ks <$> vs
 
+rframeFold :: (Data k, Monad m) => F.FoldM m (Vector v) a -> RFrame k v -> m a
+rframeFold ff (RFrame kv vs) = F.foldM ff vs
+
 rframeDecode :: (Data k, Monad m) => Decoder m k v a -> RFrame k v -> Vector (m a)
 rframeDecode decoder rframe = decodeRow decoder . HM.fromList . V.toList <$> rframeIter rframe
 
@@ -211,6 +214,9 @@ instance Monad m => Functor (PFrame m k) where
 
 pframeCols :: PFrame m k v -> Int
 pframeCols (PFrame ks _) = V.length ks
+
+pframeFold :: Monad m => F.FoldM m (Vector v) a -> PFrame m k v -> m a
+pframeFold = undefined
 
 pframeDecode :: MonadThrow m => Decoder m k v a -> PFrame m k v -> P.Producer a m ()
 pframeDecode = undefined
