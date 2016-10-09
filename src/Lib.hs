@@ -114,8 +114,29 @@ rframeRows (RFrame _ vs) = V.length vs
 rframeIter :: (Eq k, Hashable k) => RFrame k v -> Vector (HashMap k v)
 rframeIter (RFrame ks vs) = HM.fromList . V.toList . V.zip ks <$> vs
 
-rframeMap :: (Hashable k, Eq k, MonadThrow m) => Decoder m k v a -> RFrame k v -> Vector (m a)
-rframeMap decoder rframe = runDecoder decoder <$> rframeIter rframe
+rframeDecode :: (Hashable k, Eq k, MonadThrow m) => Decoder m k v a -> RFrame k v -> Vector (m a)
+rframeDecode decoder rframe = runDecoder decoder <$> rframeIter rframe
+
+rframeFilter :: (k -> Bool) -> RFrame k v -> RFrame k v
+rframeFilter = undefined
+
+-- Will throw on col missing
+rframeGetCol :: MonadThrow m => k -> RFrame k v -> m (Vector v)
+rframeGetCol = undefined
+
+-- Will append if not present
+-- Will throw on row length mismatch
+rframeSetCol :: MonadThrow m => k -> Vector v -> RFrame k v -> m (RFrame k v)
+rframeSetCol = undefined
+
+-- Will throw on col mismatch
+rframeAddRow :: MonadThrow m => HashMap k v -> RFrame k v -> m (RFrame k v)
+rframeAddRow = undefined
+
+-- Appends row-wise, retaining column order of the first
+-- Will throw on col mismatch
+rframeAppend :: MonadThrow m => RFrame k v -> RFrame k v -> m (RFrame k v)
+rframeAppend = undefined
 
 -- CFrame
 
@@ -129,8 +150,26 @@ data CFrame k v = CFrame
 cframeCols :: CFrame k v -> Int
 cframeCols (CFrame ks _ _) = V.length ks
 
-cframeMap :: MonadThrow m => Decoder m k v a -> CFrame k v -> Vector (m a)
-cframeMap = undefined
+cframeDecode :: MonadThrow m => Decoder m k v a -> CFrame k v -> Vector (m a)
+cframeDecode = undefined
+
+-- Will throw on out of bounds
+cframeGetRow :: MonadThrow m => Int -> CFrame k v -> m (HashMap k v)
+cframeGetRow = undefined
+
+-- Will throw on out of bounds or col mismatch
+cframeSetRow :: MonadThrow m => Int -> HashMap k v -> CFrame k v -> m (CFrame k v)
+cframeSetRow = undefined
+
+-- Will throw on col mismatch
+cframeAddRow :: MonadThrow m => HashMap k v -> CFrame k v -> m (CFrame k v)
+cframeAddRow = undefined
+
+-- Merge two CFrames with the given col merge function if overlapping
+-- Retains the order of columns as seen in the first then second (minus repeats)
+-- Will throw on row length mismatch
+cframeMerge :: MonadThrow m => (k -> v -> v -> v) -> CFrame k v -> CFrame k v -> m (CFrame k v)
+cframeMerge = undefined
 
 -- PFrame
 
@@ -146,8 +185,8 @@ instance Monad m => Functor (PFrame m k) where
 pframeCols :: PFrame m k v -> Int
 pframeCols (PFrame ks _) = V.length ks
 
-pframeMap :: MonadThrow m => Decoder m k v a -> PFrame m k v -> P.Producer a m ()
-pframeMap = undefined
+pframeDecode :: MonadThrow m => Decoder m k v a -> PFrame m k v -> P.Producer a m ()
+pframeDecode = undefined
 
 -- Conversions
 
