@@ -1,32 +1,32 @@
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DeriveFoldable #-}
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveTraversable #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE DeriveFoldable             #-}
+{-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE DeriveTraversable          #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 
 module Analyze where
 
-import Control.Applicative.Free
-import qualified Control.Foldl as F
-import Control.Monad ((>=>))
-import Control.Monad.Catch
-import qualified Data.Aeson as A
-import Data.Foldable (toList)
-import Data.Functor.Identity (Identity(..))
-import qualified Data.HashMap.Strict as HM
-import Data.HashMap.Strict (HashMap)
-import Data.Hashable (Hashable)
-import Data.Maybe (fromMaybe, isJust)
-import Data.Profunctor
-import qualified Data.Text as T
-import Data.Text (Text)
-import Data.Typeable
-import qualified Data.Vector as V
+import           Control.Applicative.Free
+import qualified Control.Foldl                     as F
+import           Control.Monad                     ((>=>))
+import           Control.Monad.Catch
+import qualified Data.Aeson                        as A
+import           Data.Foldable                     (toList)
+import           Data.Functor.Identity             (Identity (..))
+import           Data.Hashable                     (Hashable)
+import           Data.HashMap.Strict               (HashMap)
+import qualified Data.HashMap.Strict               as HM
+import           Data.Maybe                        (fromMaybe, isJust)
+import           Data.Profunctor
+import           Data.Text                         (Text)
+import qualified Data.Text                         as T
+import           Data.Typeable
+import           Data.Vector                       (Vector)
+import qualified Data.Vector                       as V
 import qualified Data.Vector.Fusion.Stream.Monadic as VSM
-import Data.Vector (Vector)
-import Pipes as P
+import           Pipes                             as P
 
 -- Preamble
 
@@ -47,21 +47,21 @@ data Value =
   deriving (Show, Eq)
 
 valueToType :: Value -> ValueType
-valueToType (ValueText _) = ValueTypeText
+valueToType (ValueText _)    = ValueTypeText
 valueToType (ValueInteger _) = ValueTypeInteger
-valueToType (ValueDouble _) = ValueTypeDouble
+valueToType (ValueDouble _)  = ValueTypeDouble
 
 getText :: Value -> Maybe Text
 getText (ValueText s) = Just s
-getText _ = Nothing
+getText _             = Nothing
 
 getInteger :: Value -> Maybe Integer
 getInteger (ValueInteger i) = Just i
-getInteger _ = Nothing
+getInteger _                = Nothing
 
 getDouble :: Value -> Maybe Double
 getDouble (ValueDouble d) = Just d
-getDouble _ = Nothing
+getDouble _               = Nothing
 
 -- Decoding
 
@@ -76,7 +76,7 @@ decoderKeys :: Decoder m k v a -> [k]
 decoderKeys (Decoder x) = go x
   where
     go :: Ap (Arg m k v) a -> [k]
-    go (Pure _) = []
+    go (Pure _)            = []
     go (Ap (Arg k _) rest) = k : (go rest)
 
 -- This is pretty sensitive to 'lets'
@@ -117,7 +117,7 @@ andThen (F.FoldM step begin done) f = F.FoldM step begin (done >=> f)
 orElse :: Monad m => F.FoldM m v (Maybe a) -> m a -> F.FoldM m v a
 orElse f act = f `andThen` act'
   where
-    act' Nothing = act
+    act' Nothing  = act
     act' (Just x) = pure x
 
 require :: (Data k, MonadThrow m) => k -> (k -> v -> m a) -> Arg m k v a
@@ -125,15 +125,15 @@ require k e = Arg k (F.generalize F.head `orElse` throwM (MissingKeyError k) `an
 
 textual :: (Data k, MonadThrow m) => k -> Value -> m Text
 textual _ (ValueText s) = pure s
-textual k v = throwM (ValueTypeError k ValueTypeText v)
+textual k v             = throwM (ValueTypeError k ValueTypeText v)
 
 integral :: (Data k, MonadThrow m) => k -> Value -> m Integer
 integral _ (ValueInteger s) = pure s
-integral k v = throwM (ValueTypeError k ValueTypeInteger v)
+integral k v                = throwM (ValueTypeError k ValueTypeInteger v)
 
 floating :: (Data k, MonadThrow m) => k -> Value -> m Double
 floating _ (ValueDouble s) = pure s
-floating k v = throwM (ValueTypeError k ValueTypeDouble v)
+floating k v               = throwM (ValueTypeError k ValueTypeDouble v)
 
 -- RFrame
 
@@ -193,7 +193,7 @@ cframeMerge = undefined
 
 cframeFilter :: (k -> Bool) -> CFrame k v -> CFrame k v
 cframeFilter p (CFrame ks rs cs) = CFrame ks' rs cs'
-  where 
+  where
     ks' = V.filter p ks
     p' k _ = p k
     cs' = HM.filterWithKey p' cs
@@ -227,10 +227,10 @@ pframeUnpack :: Monad m => PFrame m k v -> m (RFrame k v)
 pframeUnpack (PFrame ks vp) = result
   where
     unfolded =
-      flip VSM.unfoldrM vp $ \p -> do 
+      flip VSM.unfoldrM vp $ \p -> do
         n <- P.next p
         return $ case n of
-          Left () -> Nothing
+          Left ()       -> Nothing
           Right (a, p') -> Just (a, p')
     result = (\vl -> RFrame ks (V.fromList vl)) <$> VSM.toList unfolded
 
@@ -240,9 +240,9 @@ project ks row = V.mapM f ks
     f k =
       case HM.lookup k row of
         Nothing -> throwM (MissingKeyError k)
-        Just v -> pure v
+        Just v  -> pure v
 
--- kind of the inverse of rframeIter 
+-- kind of the inverse of rframeIter
 projectRow :: (Data k, MonadThrow m) => Vector k -> Vector (HashMap k v) -> m (RFrame k v)
 projectRow ks rs = (\vs -> RFrame ks vs) <$> V.mapM (project ks) rs
 
