@@ -5,13 +5,15 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Lib
     ( someFunc
     ) where
 
+import Control.Applicative.Free
 import qualified Control.Foldl as F
-import Control.Monad (MonadPlus(..))
+import Control.Monad ((>=>))
 import qualified Data.Aeson as A
 import qualified Data.Csv as C
 import Data.Foldable (toList)
@@ -25,6 +27,7 @@ import Data.Maybe (isJust)
 import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.Vector as V
+import qualified Data.Vector.Fusion.Stream.Monadic as VSM
 import Data.Vector (Vector)
 import Pipes as P
 
@@ -33,50 +36,53 @@ someFunc = putStrLn "someFunc"
 
 -- Preamble
 
-lookupHas :: Eq a => a -> [(a, b)] -> Bool
-lookupHas _ [] = False
-lookupHas name ((n, _):xs) =
-  if name == n
-    then True
-    else lookupHas name xs
+-- lookupLookup :: Eq a => a -> Lookup a b -> Maybe b
+-- lookupLookup a (Lookup xs) = lookup a xs
 
-lookupMap :: Eq a => a -> (b -> b) -> [(a, b)] -> [(a, b)]
-lookupMap _ _ [] = []
-lookupMap name fn ((n, v):xs) =
-  if name == n
-    then (n, (fn v)) : xs
-    else lookupMap name fn xs
+-- lookupHas :: Eq a => a -> [(a, b)] -> Bool
+-- lookupHas _ [] = False
+-- lookupHas name ((n, _):xs) =
+--   if name == n
+--     then True
+--     else lookupHas name xs
+
+-- lookupMap :: Eq a => a -> (b -> b) -> [(a, b)] -> [(a, b)]
+-- lookupMap _ _ [] = []
+-- lookupMap name fn ((n, v):xs) =
+--   if name == n
+--     then (n, (fn v)) : xs
+--     else lookupMap name fn xs
     
-lookupMapF :: (Applicative f, Eq a) => a -> (b -> f b) -> [(a, b)] -> f [(a, b)]
-lookupMapF _ _ [] = pure []
-lookupMapF name fn ((n, v):xs) =
-  if name == n
-    then (\v' -> (n, v') : xs) <$> (fn v)
-    else lookupMapF name fn xs
+-- lookupMapF :: (Applicative f, Eq a) => a -> (b -> f b) -> [(a, b)] -> f [(a, b)]
+-- lookupMapF _ _ [] = pure []
+-- lookupMapF name fn ((n, v):xs) =
+--   if name == n
+--     then (\v' -> (n, v') : xs) <$> (fn v)
+--     else lookupMapF name fn xs
 
-lookupMapWithIndex :: (a -> b -> b) -> [(a, b)] -> [(a, b)]
-lookupMapWithIndex _ [] = []
-lookupMapWithIndex fn ((n, v):xs) = (n, (fn n v)) : (lookupMapWithIndex fn xs)
+-- lookupMapWithIndex :: (a -> b -> b) -> [(a, b)] -> [(a, b)]
+-- lookupMapWithIndex _ [] = []
+-- lookupMapWithIndex fn ((n, v):xs) = (n, (fn n v)) : (lookupMapWithIndex fn xs)
 
-lookupMapWithIndexF :: Applicative f => (a -> b -> f b) -> [(a, b)] -> f [(a, b)]
-lookupMapWithIndexF f = traverse (\(n, v) -> ((\v' -> (n, v')) <$> f n v))
+-- lookupMapWithIndexF :: Applicative f => (a -> b -> f b) -> [(a, b)] -> f [(a, b)]
+-- lookupMapWithIndexF f = traverse (\(n, v) -> ((\v' -> (n, v')) <$> f n v))
     
-lookupImap :: (a -> a) -> [(a, b)] -> [(a, b)]
-lookupImap _ [] = []
-lookupImap f ((n, v):xs) = (f n, v) : xs
+-- lookupImap :: (a -> a) -> [(a, b)] -> [(a, b)]
+-- lookupImap _ [] = []
+-- lookupImap f ((n, v):xs) = (f n, v) : xs
 
-lookupImapF :: Applicative f => (a -> f a) -> [(a, b)] -> f [(a, b)]
-lookupImapF f xs = traverse (\(n, v) -> (\n' -> (n', v)) <$> f n) xs
+-- lookupImapF :: Applicative f => (a -> f a) -> [(a, b)] -> f [(a, b)]
+-- lookupImapF f xs = traverse (\(n, v) -> (\n' -> (n', v)) <$> f n) xs
     
-lookupFilter :: (a -> Bool) -> [(a, b)] -> [(a, b)]
-lookupFilter f = filter (\(a, _) -> f a)
+-- lookupFilter :: (a -> Bool) -> [(a, b)] -> [(a, b)]
+-- lookupFilter f = filter (\(a, _) -> f a)
 
-lookupFilterF :: Monad f => (a -> f Bool) -> [(a, b)] -> f [(a, b)]
-lookupFilterF f [] = pure []
-lookupFilterF f (x@(k, _):xs) = do
-  v <- f k
-  w <- lookupFilterF f xs
-  return $ if v then (x:w) else w
+-- lookupFilterF :: Monad f => (a -> f Bool) -> [(a, b)] -> f [(a, b)]
+-- lookupFilterF f [] = pure []
+-- lookupFilterF f (x@(k, _):xs) = do
+--   v <- f k
+--   w <- lookupFilterF f xs
+--   return $ if v then (x:w) else w
 
 -- Types
 
@@ -92,46 +98,46 @@ data Value =
   | ValueDouble Double
   deriving (Show, Eq)
 
-newtype Lookup k v = Lookup [(k, v)]
-  deriving (Show, Eq, Monoid, Functor, Foldable, Traversable)
+-- newtype Lookup k v = Lookup [(k, v)]
+--   deriving (Show, Eq, Monoid, Functor, Foldable, Traversable)
 
-class Indexed r k where
-  hasCol :: k -> r k v -> Bool
+-- class Indexed r k where
+--   hasCol :: k -> r k v -> Bool
 
-  mapIndex :: (k -> k) -> r k v -> r k v
-  mapIndex fn = runIdentity . mapIndexM (Identity . fn)
+--   mapIndex :: (k -> k) -> r k v -> r k v
+--   mapIndex fn = runIdentity . mapIndexM (Identity . fn)
 
-  mapIndexM :: Applicative m => (k -> m k) -> r k v -> m (r k v)
+--   mapIndexM :: Applicative m => (k -> m k) -> r k v -> m (r k v)
 
-  foldIndex :: F.Fold k a -> r k v -> a
-  foldIndex ff = runIdentity . foldIndexM (F.generalize ff)
+--   foldIndex :: F.Fold k a -> r k v -> a
+--   foldIndex ff = runIdentity . foldIndexM (F.generalize ff)
 
-  foldIndexM :: Monad m => F.FoldM m k a -> r k v -> m a
+--   foldIndexM :: Monad m => F.FoldM m k a -> r k v -> m a
 
-  filterCol :: (k -> Bool) -> r k v -> r k v
-  filterCol fn = runIdentity . filterColM (Identity . fn)
+--   filterCol :: (k -> Bool) -> r k v -> r k v
+--   filterCol fn = runIdentity . filterColM (Identity . fn)
 
-  filterColM :: Monad m => (k -> m Bool) -> r k v -> m (r k v)
+--   filterColM :: Monad m => (k -> m Bool) -> r k v -> m (r k v)
 
-  mapCol :: k -> (v -> v) -> r k v -> r k v
-  mapCol name fn = runIdentity . mapColM name (Identity . fn)
+--   mapCol :: k -> (v -> v) -> r k v -> r k v
+--   mapCol name fn = runIdentity . mapColM name (Identity . fn)
 
-  mapColM :: Applicative m => k -> (v -> m v) -> r k v -> m (r k v)
+--   mapColM :: Applicative m => k -> (v -> m v) -> r k v -> m (r k v)
 
-  mapWithIndex :: (k -> v -> v) -> r k v -> r k v
-  mapWithIndex fn = runIdentity . mapWithIndexM (\k v -> Identity (fn k v))
+--   mapWithIndex :: (k -> v -> v) -> r k v -> r k v
+--   mapWithIndex fn = runIdentity . mapWithIndexM (\k v -> Identity (fn k v))
 
-  mapWithIndexM :: Applicative m => (k -> v -> m v) -> r k v -> m (r k v)
+--   mapWithIndexM :: Applicative m => (k -> v -> m v) -> r k v -> m (r k v)
 
-  foldCol :: k -> F.Fold v a -> r k v -> a
-  foldCol name ff = runIdentity . foldColM name (F.generalize ff)
+--   foldCol :: k -> F.Fold v a -> r k v -> a
+--   foldCol name ff = runIdentity . foldColM name (F.generalize ff)
 
-  foldColM :: Monad m => k -> F.FoldM m v a -> r k v -> m a
+--   foldColM :: Monad m => k -> F.FoldM m v a -> r k v -> m a
 
-  foldWithIndex :: F.Fold (k, v) a -> r k v -> a
-  foldWithIndex ff = runIdentity . foldWithIndexM (F.generalize ff)
+--   foldWithIndex :: F.Fold (k, v) a -> r k v -> a
+--   foldWithIndex ff = runIdentity . foldWithIndexM (F.generalize ff)
 
-  foldWithIndexM :: Monad m => F.FoldM m (k, v) a -> r k v -> m a
+--   foldWithIndexM :: Monad m => F.FoldM m (k, v) a -> r k v -> m a
 
 valueToType :: Value -> ValueType
 valueToType (ValueText _) = ValueTypeText
@@ -150,38 +156,8 @@ getDouble :: Value -> Maybe Double
 getDouble (ValueDouble d) = Just d
 getDouble _ = Nothing
 
-instance Eq k => Indexed Lookup k where
-  hasCol name (Lookup os) = lookupHas name os
-  mapIndexM f (Lookup os) = Lookup <$> lookupImapF f os
-  foldIndexM ff (Lookup os) = F.foldM ff (fst <$> os)
-  filterColM p (Lookup os) = Lookup <$> lookupFilterF p os
-  mapColM name fn (Lookup os) = Lookup <$> lookupMapF name fn os
-  mapWithIndexM f (Lookup os) = Lookup <$> lookupMapWithIndexF f os
-  foldColM name ff (Lookup os) = F.foldM ff (lookup name os)
-  foldWithIndexM ff (Lookup os) = F.foldM ff os
-  
-instance (Eq k, Ord k) => Indexed Map k where
-  hasCol name m = undefined
-  mapIndexM f m = undefined
-  foldIndexM ff m = undefined
-  filterColM p m = undefined
-  mapColM name fn m = undefined
-  mapWithIndexM f m = undefined
-  foldColM name ff m = undefined
-  foldWithIndexM ff m = undefined
-
-instance (Eq k, Hashable k) => Indexed HashMap k where
-  hasCol name m = undefined
-  mapIndexM f m = undefined
-  foldIndexM ff m = undefined
-  filterColM p m = undefined
-  mapColM name fn m = undefined
-  mapWithIndexM f m = undefined
-  foldColM name ff m = undefined
-  foldWithIndexM ff m = undefined
-
-exampleObj :: Lookup Text Value
-exampleObj = Lookup
+exampleObj :: HashMap Text Value
+exampleObj = HM.fromList
   [ ("id", ValueInteger 42)
   , ("name", ValueText "foo")
   ]
@@ -198,96 +174,129 @@ exampleHeader =
   , "name"
   ]
 
-exampleDecl :: Lookup Text ValueType
-exampleDecl = Lookup
+exampleDecl :: [(Text, ValueType)]
+exampleDecl =
   [ ("id", ValueTypeInteger)
   , ("name", ValueTypeText)
   ]
 
-exampleObj2 :: Lookup Text Value
-exampleObj2 = Lookup
+exampleObj2 :: HashMap Text Value
+exampleObj2 = HM.fromList
   [ ("id", ValueInteger 43)
   , ("name", ValueText "bar")
   ]
 
-exampleColMaj :: Lookup Text [Value]
-exampleColMaj = Lookup
-  [ ("id", [ValueInteger 42, ValueInteger 43])
-  , ("name", [ValueText "foo", ValueText "bar"])
-  ]
+data FrameError k vt v =
+    MissingKeyError k
+  | ValueTypeError k vt v
+  deriving (Show, Eq)
 
-data Frame k v = Frame (Vector k) [Vector v] deriving (Functor, Foldable, Traversable)
+data Arg k vt a = Arg k vt deriving (Eq, Show)
 
-data PFrame m k v = PFrame (Vector k) (P.Producer (Vector v) m ())
+type Handler k vt a = Ap (Arg k vt) a
+
+handlerTypes :: Handler k vt a -> [(k, vt)]
+handlerTypes = undefined
+
+-- type Trans f g = forall x. f x -> g x
+
+-- runHandler :: Monad m => Handler k vt a -> Trans (Arg k vt) m -> HashMap k v -> m a
+-- runHandler = undefined
+
+argText :: k -> Arg k ValueType Text
+argText k = Arg k ValueTypeText
+
+argInteger :: k -> Arg k ValueType Integer
+argInteger k = Arg k ValueTypeInteger
+
+argDouble :: k -> Arg k ValueType Double
+argDouble k = Arg k ValueTypeDouble
+
+-- In-memory row-oriented frame
+data RFrame k v = RFrame
+  { rframeKeys :: !(Vector k)
+  , rframeValues :: !(Vector (Vector v))
+  } deriving (Functor, Foldable, Traversable)
+
+rframeCols :: RFrame k v -> Int
+rframeCols (RFrame ks _) = V.length ks
+
+rframeRows :: RFrame k v -> Int
+rframeRows (RFrame _ vs) = V.length vs
+
+-- In-memory col-oriented frame
+data CFrame k v = CFrame
+  { cframeKeys :: !(Vector k)
+  , cframeRows :: !Int
+  , cframeMap :: !(HashMap k (Vector v))
+  } deriving (Functor, Foldable, Traversable)
+
+cframeCols :: CFrame k v -> Int
+cframeCols (CFrame ks _ _) = V.length ks
+
+-- Streaming row-oriented frame
+data PFrame m k v = PFrame
+  { pframeKeys :: !(Vector k)
+  , pframeValues :: !(P.Producer (Vector v) m ())
+  }
 
 instance Monad m => Functor (PFrame m k) where
   fmap f (PFrame ks vs) = PFrame ks (P.for vs (P.yield . fmap f))
 
-instance Eq k => Indexed (PFrame m) k where
-  hasCol name (PFrame ks _) = elem name ks
-  mapIndexM f (PFrame ks vs) =
-    (\ks' -> PFrame ks' vs) <$> traverse f ks
-  foldIndexM ff (PFrame ks _) = F.foldM ff ks
-  filterColM p m = undefined
-  mapColM name fn m = undefined
-  mapWithIndexM f m = undefined
-  foldColM name ff m = undefined
-  foldWithIndexM ff m = undefined
+pframeCols :: PFrame m k v -> Int
+pframeCols (PFrame ks _) = V.length ks
 
--- class Monad m => EFoldable t m where
---   efold :: F.Fold a b -> t a -> m b
---   efold ff = efoldM (F.generalize ff)
---   efoldM :: F.FoldM m a b -> t a -> m b
+pframePack :: Monad m => RFrame k v -> PFrame m k v
+pframePack (RFrame ks vs) = PFrame ks (P.each vs)
 
--- instance Monad m => EFoldable (Frame t k) m where
---   efoldM ff (Frame ks vs) = 
+-- PFrames can be large, so beware
+-- This is generally not what you want to use since it will block
+-- until is reads everything into memory.
+pframeUnpack :: Monad m => PFrame m k v -> m (RFrame k v)
+pframeUnpack (PFrame ks vp) = result
+  where
+    unfolded =
+      flip VSM.unfoldrM vp $ \p -> do 
+        n <- P.next p
+        return $ case n of
+          Left () -> Nothing
+          Right (a, p') -> Just (a, p')
+    result = (\vl -> RFrame ks (V.fromList vl)) <$> VSM.toList unfolded
 
-instance Eq k => Indexed Frame k where
-  hasCol name (Frame ks _) = elem name ks
-  mapIndexM f (Frame ks vs) =
-    (\ks' -> Frame ks' vs) <$> traverse f ks
-  foldIndexM ff (Frame ks _) = F.foldM ff ks
-  filterColM p m = undefined
-  mapColM name fn m = undefined
-  mapWithIndexM f m = undefined
-  foldColM name ff m = undefined
-  foldWithIndexM ff m = undefined
+rframeIter :: (Eq k, Hashable k) => RFrame k v -> Vector (HashMap k v)
+rframeIter (RFrame ks vs) = HM.fromList . V.toList . V.zip ks <$> vs
 
- --  filterColM :: Monad m => (k -> m Bool) -> r k v -> m (r k v)
- --  mapColM :: Applicative m => k -> (v -> m v) -> r k v -> m (r k v)
- --  mapWithIndexM :: Applicative m => (k -> v -> m v) -> r k v -> m (r k v)
- --  foldColM :: Monad m => k -> F.FoldM m v a -> r k v -> m a
- --  foldWithIndexM :: Monad m => F.FoldM m (k, v) a -> r k v -> m a
+rowToCol :: RFrame k v -> CFrame k v
+rowToCol = undefined
 
-mfilterM :: (MonadPlus t, Monad m) => Monad m => (a -> m Bool) -> t a -> m (t a)
-mfilterM p ta = undefined
+colToRow :: CFrame k v -> RFrame k v
+colToRow = undefined
 
-class (Indexed f k, Indexed r k) => Rowed f r k where
-  foldRow :: F.Fold (r k v) a -> f k v -> a
-  foldRow ff = runIdentity . foldRowM (F.generalize ff)
-  foldRowM :: Monad m => F.FoldM m (r k v) a -> f k v -> m a
-  filterRow :: (r k v -> Bool) -> f k v -> f k v
-  filterRow p = runIdentity . filterRowM (Identity . p)
-  filterRowM :: Monad m => (r k v -> m Bool) -> f k v -> m (f k v)
+-- Re-evaluates value rows again and again for each key
+-- So beware...
+--frameIterCols :: Frame k v -> HashMap k (Vector v)
+--frameIterCols = undefined
+-- frameCols (Frame ks vs) = Lookup (zipWith f [(0 :: Int)..] (V.toList ks))
+--   where
+--     f i k = (k, ((V.! i) <$> vs))
 
-frameRows :: Frame k v -> [Lookup k v]
-frameRows (Frame ks vs) = Lookup . V.toList . V.zip ks <$> vs
-
-frameCols :: Frame k v -> Lookup k (Vector v)
-frameCols = undefined
-
-instance Eq k => Rowed Frame Lookup k where
-  foldRowM ff = F.foldM ff . frameRows
-  filterRowM p (Frame ks vs) = (\vs' -> Frame ks vs') <$> mfilterM p' vs
-    where p' = p . Lookup . V.toList . V.zip ks
-
-exampleFrame :: Frame Text Value
-exampleFrame = Frame names values
+exampleRFrame :: RFrame Text Value
+exampleRFrame = RFrame names values
   where
     names = V.fromList ["id", "name"]
-    values =
+    values = V.fromList
       [ V.fromList [ValueInteger 42, ValueText "foo"]
       , V.fromList [ValueInteger 43, ValueText "bar"]
+      ]
+
+exampleCFrame :: CFrame Text Value
+exampleCFrame = CFrame names rows cols
+  where
+    names = V.fromList ["id", "name"]
+    rows = 2
+    cols = HM.fromList
+      [ ("id", V.fromList [ValueInteger 42, ValueInteger 43])
+      , ("name", V.fromList [ValueText "foo", ValueText "bar"])
       ]
 
 filterFold :: (v -> Maybe w) -> F.Fold w z -> F.Fold v z
@@ -306,20 +315,20 @@ filterFoldM e (F.FoldM step begin done) = F.FoldM step' begin done
         Nothing -> pure a
         Just w -> step a w
 
-maxId :: F.Fold Value (Maybe Integer)
-maxId = filterFold getInteger F.maximum
+-- maxId :: F.Fold (Lookup Text Value) (Maybe Integer)
+-- maxId = filterFold (lookupLookup "id" >=> getInteger) F.maximum
 
-exampleMaxId :: Maybe Integer
-exampleMaxId = foldCol "id" maxId exampleFrame
+-- exampleMaxId :: Maybe Integer
+-- exampleMaxId = runIdentity (foldRow maxId exampleFrame)
 
 exampleCsv :: Text
 exampleCsv = "id,name\n" `mappend` "42,foo\n" `mappend` "43,bar\n"
 
-instance A.ToJSON v => A.ToJSON (Lookup Text v) where
-  toJSON (Lookup vs) = A.object ((A.toJSON <$>) <$> vs)
+-- instance A.ToJSON v => A.ToJSON (HashMap Text v) where
+--   toJSON (Lookup vs) = A.object ((A.toJSON <$>) <$> vs)
 
-instance A.ToJSON v => A.ToJSON (Frame Text v) where
-  toJSON frame = A.Array (V.fromList (A.toJSON <$> frameRows frame))
+instance A.ToJSON v => A.ToJSON (RFrame Text v) where
+  toJSON frame = A.Array (A.toJSON <$> rframeIter frame)
 
 -- instance C.ToField v => C.ToNamedRecord (Lookup Text v) where
 --   toNamedRecord (Lookup vs) = undefined
@@ -329,8 +338,3 @@ instance A.ToJSON v => A.ToJSON (Frame Text v) where
 
 -- data FrameError = FrameError deriving (Eq, Show, Typeable)
 -- instance Exception FrameError
-
--- class Dual c where
---   data DualIndex c :: *
-
--- class (Indexed r, Indexed c) => Framed f r c where
