@@ -21,6 +21,7 @@ library
                      , bytestring
                      , cassava
                      , containers
+                     , exceptions
                      , foldl
                      , free
                      , hashable
