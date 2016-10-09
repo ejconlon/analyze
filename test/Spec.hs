@@ -1,18 +1,19 @@
+import Analyze.Conversions as AC
 import           Fixtures
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
 -- Tests
 
-testOne :: TestTree
-testOne = testCase "one" $ do
-  return ()
+testRowToCol :: TestTree
+testRowToCol = testCase "rowToCol" $ do
+  (AC.rowToCol exampleRFrame) @?= exampleCFrame
 
 -- Runner
 
 tests :: TestTree
 tests = testGroup "Tests"
-  [ testOne
+  [ testRowToCol
   ]
 
 main :: IO ()

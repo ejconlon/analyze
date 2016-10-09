@@ -21,7 +21,7 @@ data CFrame k v = CFrame
   { cframeKeys :: !(Vector k)
   , cframeRows :: !Int
   , cframeData :: !(HashMap k (Vector v))
-  } deriving (Functor, Foldable, Traversable)
+  } deriving (Eq, Show, Functor, Foldable, Traversable)
 
 -- TODO Just write all fields as is
 instance A.ToJSON v => A.ToJSON (CFrame Text v) where

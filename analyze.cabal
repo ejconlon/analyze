@@ -41,6 +41,7 @@ test-suite analyze-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
+  other-modules:       Fixtures
   build-depends:       base
                      , analyze
                      , aeson

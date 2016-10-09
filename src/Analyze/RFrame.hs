@@ -21,7 +21,7 @@ import qualified Data.Vector         as V
 data RFrame k v = RFrame
   { rframeKeys :: !(Vector k)
   , rframeData :: !(Vector (Vector v))
-  } deriving (Functor, Foldable, Traversable)
+  } deriving (Eq, Show, Functor, Foldable, Traversable)
 
 instance A.ToJSON v => A.ToJSON (RFrame Text v) where
   toJSON frame = A.Array (A.toJSON . HM.fromList . V.toList <$> rframeIter frame)
