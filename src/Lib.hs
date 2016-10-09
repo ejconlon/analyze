@@ -186,31 +186,30 @@ exampleObj2 = HM.fromList
   , ("name", ValueText "bar")
   ]
 
-data FrameError k vt v =
+data DArg k v e a = DArg k (v -> Either e a) deriving (Functor)
+
+type Decoder k v e a = Ap (DArg k v e) a
+
+decoderKeys :: Decoder k v e a -> [k]
+decoderKeys = undefined
+
+runDecoder :: Decoder k v e a -> (k -> e) -> HashMap k v -> Either e a
+runDecoder = undefined
+
+data ValueError k =
     MissingKeyError k
-  | ValueTypeError k vt v
+  | ValueTypeError k ValueType Value
   deriving (Show, Eq)
 
-data Arg k vt a = Arg k vt deriving (Eq, Show)
+textOrError :: k -> Value -> Either (ValueError k) Text
+textOrError _ (ValueText s) = Right s
+textOrError k v = Left (ValueTypeError k ValueTypeText v)
 
-type Handler k vt a = Ap (Arg k vt) a
+argText :: k -> DArg k Value (ValueError k) Text
+argText k = DArg k (textOrError k)
 
-handlerTypes :: Handler k vt a -> [(k, vt)]
-handlerTypes = undefined
-
--- type Trans f g = forall x. f x -> g x
-
--- runHandler :: Monad m => Handler k vt a -> Trans (Arg k vt) m -> HashMap k v -> m a
--- runHandler = undefined
-
-argText :: k -> Arg k ValueType Text
-argText k = Arg k ValueTypeText
-
-argInteger :: k -> Arg k ValueType Integer
-argInteger k = Arg k ValueTypeInteger
-
-argDouble :: k -> Arg k ValueType Double
-argDouble k = Arg k ValueTypeDouble
+runValueDecoder :: Decoder k Value (ValueError k) a -> HashMap k Value -> Either (ValueError k) a
+runValueDecoder decoder row = runDecoder decoder MissingKeyError row
 
 -- In-memory row-oriented frame
 data RFrame k v = RFrame
