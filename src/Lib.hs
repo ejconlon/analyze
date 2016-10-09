@@ -182,14 +182,14 @@ exampleObj = HM.fromList
   , ("name", ValueText "foo")
   ]
 
-exampleRecord :: [Value]
-exampleRecord =
+exampleRecord :: Vector Value
+exampleRecord = V.fromList
   [ ValueInteger 42
   , ValueText "foo"
   ]
 
-exampleHeader :: [Text]
-exampleHeader =
+exampleHeader :: Vector Text
+exampleHeader = V.fromList
   [ "id"
   , "name"
   ]
