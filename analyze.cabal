@@ -46,6 +46,7 @@ test-suite analyze-test
   build-depends:       base
                      , analyze
                      , aeson
+                     , exceptions
                      , foldl
                      , QuickCheck
                      , unordered-containers

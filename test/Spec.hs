@@ -2,6 +2,7 @@ import           Analyze.Conversions as AC
 import           Analyze.CFrame as ACF
 import           Analyze.RFrame as ARF
 import           Fixtures
+import           Generation
 import           Test.Tasty
 import           Test.Tasty.HUnit
 

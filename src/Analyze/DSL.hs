@@ -13,6 +13,9 @@ import           Data.Typeable       (Typeable)
 data MissingKeyError k = MissingKeyError k deriving (Show, Eq, Typeable)
 instance (Show k, Typeable k) => Exception (MissingKeyError k)
 
+data DuplicateKeyError k = DuplicateKeyError k deriving (Show, Eq, Typeable)
+instance (Show k, Typeable k) => Exception (DuplicateKeyError k)
+
 data ValueTypeError k = ValueTypeError k ValueType Value deriving (Show, Eq, Typeable)
 instance (Show k, Typeable k) => Exception (ValueTypeError k)
 
