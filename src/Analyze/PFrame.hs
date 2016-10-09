@@ -1,12 +1,12 @@
 module Analyze.PFrame where
 
-import Analyze.Common (Data)
-import Analyze.Decoding (Decoder(..), decodeRow)
-import qualified Control.Foldl                     as F
-import           Control.Monad.Catch               (MonadThrow(..))
-import           Data.Vector                       (Vector)
-import qualified Data.Vector                       as V
-import qualified Pipes as P
+import           Analyze.Common      (Data)
+import           Analyze.Decoding    (Decoder (..), decodeRow)
+import qualified Control.Foldl       as F
+import           Control.Monad.Catch (MonadThrow (..))
+import           Data.Vector         (Vector)
+import qualified Data.Vector         as V
+import qualified Pipes               as P
 
 -- Streaming row-oriented frame
 data PFrame m k v = PFrame

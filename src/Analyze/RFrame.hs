@@ -1,21 +1,21 @@
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFoldable    #-}
+{-# LANGUAGE DeriveFunctor     #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleInstances #-}
 
 module Analyze.RFrame where
 
-import Analyze.Common (Data)
-import Analyze.Decoding (Decoder(..), decodeRow)
-import qualified Data.Aeson                        as A
-import qualified Control.Foldl                     as F
-import           Control.Monad.Catch               (MonadThrow(..))
-import           Data.HashMap.Strict               (HashMap)
-import qualified Data.HashMap.Strict               as HM
-import Data.Text (Text)
-import qualified Data.Text as T
-import           Data.Vector                       (Vector)
-import qualified Data.Vector                       as V
+import           Analyze.Common      (Data)
+import           Analyze.Decoding    (Decoder (..), decodeRow)
+import qualified Control.Foldl       as F
+import           Control.Monad.Catch (MonadThrow (..))
+import qualified Data.Aeson          as A
+import           Data.HashMap.Strict (HashMap)
+import qualified Data.HashMap.Strict as HM
+import           Data.Text           (Text)
+import qualified Data.Text           as T
+import           Data.Vector         (Vector)
+import qualified Data.Vector         as V
 
 -- In-memory row-oriented frame
 data RFrame k v = RFrame

@@ -1,6 +1,6 @@
 module Analyze.Values where
 
-import Data.Text (Text)
+import           Data.Text (Text)
 
 data ValueType =
     ValueTypeText

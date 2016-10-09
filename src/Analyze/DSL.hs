@@ -1,14 +1,14 @@
 module Analyze.DSL where
 
-import Analyze.Common (Data)
-import Analyze.Decoding (Arg(..))
-import Analyze.Values
-import qualified Control.Foldl as F
-import Control.Monad ((>=>))
-import Control.Monad.Catch (Exception, MonadThrow(..))
-import Data.Typeable (Typeable)
-import qualified Data.Text as T
-import Data.Text (Text)
+import           Analyze.Common      (Data)
+import           Analyze.Decoding    (Arg (..))
+import           Analyze.Values
+import qualified Control.Foldl       as F
+import           Control.Monad       ((>=>))
+import           Control.Monad.Catch (Exception, MonadThrow (..))
+import           Data.Text           (Text)
+import qualified Data.Text           as T
+import           Data.Typeable       (Typeable)
 
 data MissingKeyError k = MissingKeyError k deriving (Show, Eq, Typeable)
 instance (Show k, Typeable k) => Exception (MissingKeyError k)

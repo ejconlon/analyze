@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Analyze.Decoding
@@ -9,15 +9,15 @@ module Analyze.Decoding
   , decodeCol
   ) where
 
-import Analyze.Common (Data)
-import           Control.Applicative.Free (Ap(..))
-import qualified Control.Foldl as F
-import Data.Profunctor (Profunctor(..))
-import           Data.HashMap.Strict               (HashMap)
-import qualified Data.HashMap.Strict               as HM
-import Data.Maybe (fromMaybe)
-import           Data.Vector                       (Vector)
-import qualified Data.Vector                       as V
+import           Analyze.Common           (Data)
+import           Control.Applicative.Free (Ap (..))
+import qualified Control.Foldl            as F
+import           Data.HashMap.Strict      (HashMap)
+import qualified Data.HashMap.Strict      as HM
+import           Data.Maybe               (fromMaybe)
+import           Data.Profunctor          (Profunctor (..))
+import           Data.Vector              (Vector)
+import qualified Data.Vector              as V
 
 data Arg m k v a = Arg k (F.FoldM m v a) deriving (Functor)
 

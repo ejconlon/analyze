@@ -1,6 +1,6 @@
-import Fixtures
-import Test.Tasty
-import Test.Tasty.HUnit
+import           Fixtures
+import           Test.Tasty
+import           Test.Tasty.HUnit
 
 -- Tests
 

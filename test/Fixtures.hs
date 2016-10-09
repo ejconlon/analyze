@@ -1,15 +1,15 @@
 module Fixtures where
 
-import Analyze.CFrame (CFrame(..))
-import Analyze.RFrame (RFrame(..))
-import Analyze.Values
-import qualified Control.Foldl as F
+import           Analyze.CFrame      (CFrame (..))
+import           Analyze.RFrame      (RFrame (..))
+import           Analyze.Values
+import qualified Control.Foldl       as F
+import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
-import Data.HashMap.Strict (HashMap)
-import qualified Data.Text as T
-import Data.Text (Text)
-import qualified Data.Vector as V
-import Data.Vector (Vector)
+import           Data.Text           (Text)
+import qualified Data.Text           as T
+import           Data.Vector         (Vector)
+import qualified Data.Vector         as V
 
 exampleObj :: Vector (Text, Value)
 exampleObj = V.fromList

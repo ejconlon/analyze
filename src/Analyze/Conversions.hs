@@ -1,17 +1,17 @@
 module Analyze.Conversions where
 
-import Analyze.Common (Data)
-import Analyze.DSL (MissingKeyError(..))
-import Analyze.CFrame (CFrame(..))
-import Analyze.PFrame (PFrame(..))
-import Analyze.RFrame (RFrame(..))
-import           Control.Monad.Catch               (MonadThrow(..))
+import           Analyze.CFrame                    (CFrame (..))
+import           Analyze.Common                    (Data)
+import           Analyze.DSL                       (MissingKeyError (..))
+import           Analyze.PFrame                    (PFrame (..))
+import           Analyze.RFrame                    (RFrame (..))
+import           Control.Monad.Catch               (MonadThrow (..))
 import           Data.HashMap.Strict               (HashMap)
 import qualified Data.HashMap.Strict               as HM
 import           Data.Vector                       (Vector)
 import qualified Data.Vector                       as V
 import qualified Data.Vector.Fusion.Stream.Monadic as VSM
-import qualified Pipes as P
+import qualified Pipes                             as P
 
 -- Conversions
 
