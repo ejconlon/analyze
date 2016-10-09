@@ -11,54 +11,60 @@ import qualified Data.Text           as T
 import           Data.Vector         (Vector)
 import qualified Data.Vector         as V
 
-exampleObj :: Vector (Text, Value)
-exampleObj = V.fromList
-  [ ("id", ValueInteger 42)
-  , ("name", ValueText "foo")
-  ]
-
-exampleRecord :: Vector Value
-exampleRecord = V.fromList
-  [ ValueInteger 42
-  , ValueText "foo"
+exampleDecl :: Vector (Text, ValueType)
+exampleDecl = V.fromList
+  [ ("id", ValueTypeInteger)
+  , ("name", ValueTypeText)
+  , ("score", ValueTypeDouble)
   ]
 
 exampleHeader :: Vector Text
 exampleHeader = V.fromList
   [ "id"
   , "name"
+  , "score"
   ]
 
-exampleDecl :: [(Text, ValueType)]
-exampleDecl =
-  [ ("id", ValueTypeInteger)
-  , ("name", ValueTypeText)
+exampleObj1 :: Vector (Text, Value)
+exampleObj1 = V.fromList
+  [ ("id", ValueInteger 42)
+  , ("name", ValueText "foo")
+  , ("score", ValueDouble 5.0)
+  ]
+
+exampleRecord1 :: Vector Value
+exampleRecord1 = V.fromList
+  [ ValueInteger 42
+  , ValueText "foo"
+  , ValueDouble 50.0
   ]
 
 exampleObj2 :: Vector (Text, Value)
 exampleObj2 = V.fromList
   [ ("id", ValueInteger 43)
   , ("name", ValueText "bar")
+  , ("score", ValueDouble 3.0)
   ]
 
 exampleRFrame :: RFrame Text Value
 exampleRFrame = RFrame names values
   where
-    names = V.fromList ["id", "name"]
+    names = V.fromList ["id", "name", "score"]
     values = V.fromList
-      [ V.fromList [ValueInteger 42, ValueText "foo"]
-      , V.fromList [ValueInteger 43, ValueText "bar"]
+      [ V.fromList [ValueInteger 42, ValueText "foo", ValueDouble 5.0]
+      , V.fromList [ValueInteger 43, ValueText "bar", ValueDouble 3.0]
       ]
 
 exampleCFrame :: CFrame Text Value
 exampleCFrame = CFrame names rows cols
   where
-    names = V.fromList ["id", "name"]
+    names = V.fromList ["id", "name", "score"]
     rows = 2
     cols = HM.fromList
       [ ("id", V.fromList [ValueInteger 42, ValueInteger 43])
       , ("name", V.fromList [ValueText "foo", ValueText "bar"])
+      , ("score", V.fromList [ValueDouble 5.0, ValueDouble 3.0])
       ]
 
 exampleCsv :: Text
-exampleCsv = "id,name\n" `mappend` "42,foo\n" `mappend` "43,bar\n"
+exampleCsv = "id,name,score\n" `mappend` "42,foo,5.0\n" `mappend` "43,bar,3.0\n"
