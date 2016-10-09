@@ -5,25 +5,19 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings #-}
 
-module Lib
-    ( someFunc
-    ) where
+module Analyze where
 
 import Control.Applicative.Free
 import qualified Control.Foldl as F
 import Control.Monad ((>=>))
 import Control.Monad.Catch
 import qualified Data.Aeson as A
-import qualified Data.Csv as C
 import Data.Foldable (toList)
 import Data.Functor.Identity (Identity(..))
 import qualified Data.HashMap.Strict as HM
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
-import qualified Data.Map.Strict as M
-import Data.Map.Strict (Map)
 import Data.Maybe (fromMaybe, isJust)
 import Data.Profunctor
 import qualified Data.Text as T
@@ -33,9 +27,6 @@ import qualified Data.Vector as V
 import qualified Data.Vector.Fusion.Stream.Monadic as VSM
 import Data.Vector (Vector)
 import Pipes as P
-
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
 
 -- Preamble
 
@@ -266,60 +257,6 @@ colToRow (CFrame ks rs dat) = RFrame ks vs
   where
     vs = V.generate rs f
     f i = (\k -> (dat HM.! k) V.! i) <$> ks
-
--- Examples
-
-exampleObj :: HashMap Text Value
-exampleObj = HM.fromList
-  [ ("id", ValueInteger 42)
-  , ("name", ValueText "foo")
-  ]
-
-exampleRecord :: Vector Value
-exampleRecord = V.fromList
-  [ ValueInteger 42
-  , ValueText "foo"
-  ]
-
-exampleHeader :: Vector Text
-exampleHeader = V.fromList
-  [ "id"
-  , "name"
-  ]
-
-exampleDecl :: [(Text, ValueType)]
-exampleDecl =
-  [ ("id", ValueTypeInteger)
-  , ("name", ValueTypeText)
-  ]
-
-exampleObj2 :: HashMap Text Value
-exampleObj2 = HM.fromList
-  [ ("id", ValueInteger 43)
-  , ("name", ValueText "bar")
-  ]
-
-exampleRFrame :: RFrame Text Value
-exampleRFrame = RFrame names values
-  where
-    names = V.fromList ["id", "name"]
-    values = V.fromList
-      [ V.fromList [ValueInteger 42, ValueText "foo"]
-      , V.fromList [ValueInteger 43, ValueText "bar"]
-      ]
-
-exampleCFrame :: CFrame Text Value
-exampleCFrame = CFrame names rows cols
-  where
-    names = V.fromList ["id", "name"]
-    rows = 2
-    cols = HM.fromList
-      [ ("id", V.fromList [ValueInteger 42, ValueInteger 43])
-      , ("name", V.fromList [ValueText "foo", ValueText "bar"])
-      ]
-
-exampleCsv :: Text
-exampleCsv = "id,name\n" `mappend` "42,foo\n" `mappend` "43,bar\n"
 
 -- Folding
 
