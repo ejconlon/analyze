@@ -214,7 +214,7 @@ runValueDecoder decoder row = runDecoder decoder MissingKeyError row
 -- In-memory row-oriented frame
 data RFrame k v = RFrame
   { rframeKeys :: !(Vector k)
-  , rframeValues :: !(Vector (Vector v))
+  , rframeData :: !(Vector (Vector v))
   } deriving (Functor, Foldable, Traversable)
 
 rframeCols :: RFrame k v -> Int
@@ -223,20 +223,26 @@ rframeCols (RFrame ks _) = V.length ks
 rframeRows :: RFrame k v -> Int
 rframeRows (RFrame _ vs) = V.length vs
 
+rframeMap :: (Hashable k, Eq k) => Decoder k v e a -> (k -> e) -> RFrame k v -> Vector (Either e a)
+rframeMap decoder missing rframe = runDecoder decoder missing <$> rframeIter rframe
+
 -- In-memory col-oriented frame
 data CFrame k v = CFrame
   { cframeKeys :: !(Vector k)
   , cframeRows :: !Int
-  , cframeMap :: !(HashMap k (Vector v))
+  , cframeData :: !(HashMap k (Vector v))
   } deriving (Functor, Foldable, Traversable)
 
 cframeCols :: CFrame k v -> Int
 cframeCols (CFrame ks _ _) = V.length ks
 
+cframeMap :: Decoder k v e a -> (k -> e) -> CFrame k v -> Vector (Either e a)
+cframeMap = undefined
+
 -- Streaming row-oriented frame
 data PFrame m k v = PFrame
   { pframeKeys :: !(Vector k)
-  , pframeValues :: !(P.Producer (Vector v) m ())
+  , pframeData :: !(P.Producer (Vector v) m ())
   }
 
 instance Monad m => Functor (PFrame m k) where
@@ -244,6 +250,9 @@ instance Monad m => Functor (PFrame m k) where
 
 pframeCols :: PFrame m k v -> Int
 pframeCols (PFrame ks _) = V.length ks
+
+pframeMap :: Decoder k v e a -> (k -> e) -> PFrame m k v -> P.Producer (Either e a) m ()
+pframeMap = undefined
 
 pframePack :: Monad m => RFrame k v -> PFrame m k v
 pframePack (RFrame ks vs) = PFrame ks (P.each vs)
