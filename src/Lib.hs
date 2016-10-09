@@ -170,19 +170,6 @@ rframeDecode decoder rframe = decodeRow decoder <$> rframeIter rframe
 rframeFilter :: (HashMap k v -> Bool) -> RFrame k v -> RFrame k v
 rframeFilter = undefined
 
--- -- Will throw on col missing
--- rframeGetCol :: MonadThrow m => k -> RFrame k v -> m (Vector v)
--- rframeGetCol = undefined
-
--- -- Will append if not present
--- -- Will throw on row length mismatch
--- rframeSetCol :: MonadThrow m => k -> Vector v -> RFrame k v -> m (RFrame k v)
--- rframeSetCol = undefined
-
--- -- Will throw on col mismatch
--- rframeAddRow :: MonadThrow m => HashMap k v -> RFrame k v -> m (RFrame k v)
--- rframeAddRow = undefined
-
 -- Appends row-wise, retaining column order of the first
 -- Will throw on col mismatch
 rframeAppend :: MonadThrow m => RFrame k v -> RFrame k v -> m (RFrame k v)
