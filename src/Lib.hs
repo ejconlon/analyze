@@ -153,7 +153,7 @@ data RFrame k v = RFrame
   } deriving (Functor, Foldable, Traversable)
 
 instance A.ToJSON v => A.ToJSON (RFrame Text v) where
-  toJSON frame = A.Array (A.toJSON <$> rframeIter frame)
+  toJSON frame = A.Array (A.toJSON . HM.fromList . V.toList <$> rframeIter frame)
 
 rframeCols :: RFrame k v -> Int
 rframeCols (RFrame ks _) = V.length ks
@@ -161,13 +161,13 @@ rframeCols (RFrame ks _) = V.length ks
 rframeRows :: RFrame k v -> Int
 rframeRows (RFrame _ vs) = V.length vs
 
-rframeIter :: Data k => RFrame k v -> Vector (HashMap k v)
-rframeIter (RFrame ks vs) = HM.fromList . V.toList . V.zip ks <$> vs
+rframeIter :: Data k => RFrame k v -> Vector (Vector (k, v))
+rframeIter (RFrame ks vs) = V.zip ks <$> vs
 
 rframeDecode :: (Data k, Monad m) => Decoder m k v a -> RFrame k v -> Vector (m a)
-rframeDecode decoder rframe = decodeRow decoder <$> rframeIter rframe
+rframeDecode decoder rframe = decodeRow decoder . HM.fromList . V.toList <$> rframeIter rframe
 
-rframeFilter :: (HashMap k v -> Bool) -> RFrame k v -> RFrame k v
+rframeFilter :: (Vector (k, v) -> Bool) -> RFrame k v -> RFrame k v
 rframeFilter = undefined
 
 -- Appends row-wise, retaining column order of the first
@@ -183,6 +183,10 @@ data CFrame k v = CFrame
   , cframeRows :: !Int
   , cframeData :: !(HashMap k (Vector v))
   } deriving (Functor, Foldable, Traversable)
+
+-- TODO Just write all fields as is
+instance A.ToJSON v => A.ToJSON (CFrame Text v) where
+  toJSON frame = undefined
 
 cframeCols :: CFrame k v -> Int
 cframeCols (CFrame ks _ _) = V.length ks
