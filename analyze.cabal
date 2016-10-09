@@ -42,6 +42,7 @@ test-suite analyze-test
   hs-source-dirs:      test
   main-is:             Spec.hs
   other-modules:       Fixtures
+                     , Generation
   build-depends:       base
                      , analyze
                      , aeson
