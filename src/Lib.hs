@@ -210,7 +210,11 @@ cframeMerge :: MonadThrow m => (k -> v -> v -> v) -> CFrame k v -> CFrame k v ->
 cframeMerge = undefined
 
 cframeFilter :: (k -> Bool) -> CFrame k v -> CFrame k v
-cframeFilter = undefined
+cframeFilter p (CFrame ks rs cs) = CFrame ks' rs cs'
+  where 
+    ks' = V.filter p ks
+    p' k _ = p k
+    cs' = HM.filterWithKey p' cs
 
 -- PFrame
 
