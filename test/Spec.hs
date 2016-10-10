@@ -36,7 +36,7 @@ testPropertyIO name g t = testProperty name (propertyIO . t <$> g)
 testFixture :: TestTree
 testFixture = testCase "fixture" $ do
   exampleRFrame <- ARF.rframeFromUpdate exampleRFrameUpdate
-  (ARF.rframeKeys exampleRFrame) @?= exampleHeader
+  (ARF._rframeKeys exampleRFrame) @?= exampleHeader
   (ARF.rframeRows exampleRFrame) @?= 2
   (ARF.rframeCols exampleRFrame) @?= 3
 
