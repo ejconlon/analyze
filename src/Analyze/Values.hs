@@ -6,7 +6,7 @@ data ValueType =
     ValueTypeText
   | ValueTypeInteger
   | ValueTypeDouble
-  deriving (Show, Eq)
+  deriving (Show, Eq, Enum, Bounded)
 
 data Value =
     ValueText Text
