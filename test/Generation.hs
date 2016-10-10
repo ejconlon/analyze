@@ -19,11 +19,21 @@ checkForDupes vs = go HS.empty (V.toList vs)
         then throwM (DuplicateKeyError k)
         else go (HS.insert k s) ks
 
-generateRFrame :: (Data k, MonadThrow m) => Vector (k, t) -> (t -> Gen v) -> m (Gen (RFrame k v))
-generateRFrame decl prod = checkForDupes (fst <$> decl) >> pure gen
+rawGenerateRFrameSized :: Data k => (t -> Gen v) -> Vector (k, t) -> Int -> Gen (RFrame k v)
+rawGenerateRFrameSized prod decl numRows = gen
   where
     rowGen = sequenceA (prod . snd <$> decl)
-    allRowsGen = sized $ \n -> do
-      k <- choose (0, n)
-      V.replicateM k rowGen
+    allRowsGen = V.replicateM numRows rowGen
     gen = RFrame (fst <$> decl) <$> allRowsGen
+
+generateRFrameSized :: (Data k, MonadThrow m) => (t -> Gen v) -> Vector (k, t) -> Int -> m (Gen (RFrame k v))
+generateRFrameSized prod decl numRows = checkForDupes (fst <$> decl) >> pure gen
+  where
+    gen = rawGenerateRFrameSized prod decl numRows
+
+generateRFrame :: (Data k, MonadThrow m) => (t -> Gen v) -> Vector (k, t) -> m (Gen (RFrame k v))
+generateRFrame prod decl = checkForDupes (fst <$> decl) >> pure gen
+  where
+    gen = sized $ \n -> do
+      m <- choose (0, n)
+      rawGenerateRFrameSized prod decl m
