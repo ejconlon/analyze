@@ -1,10 +1,8 @@
 module Generation where
 
 import Analyze.Common (Data)
-import Analyze.DSL (DuplicateKeyError(..))
 import Analyze.RFrame (RFrame(..))
 import Analyze.Values
-import Control.Monad.Catch (MonadThrow(..))
 import qualified Data.HashSet as HS
 import Data.HashSet (HashSet)
 import qualified Data.Text as T
@@ -12,16 +10,6 @@ import Data.Text (Text)
 import qualified Data.Vector as V
 import Data.Vector (Vector)
 import Test.QuickCheck
-
--- TODO move
-checkForDupes :: (Data k, MonadThrow m) => Vector k -> m ()
-checkForDupes vs = go HS.empty (V.toList vs)
-  where
-    go _ [] = pure ()
-    go s (k:ks) =
-      if HS.member k s
-        then throwM (DuplicateKeyError k)
-        else go (HS.insert k s) ks
 
 distinctGenSized :: Data k => Gen k -> Int -> Gen (HashSet k)
 distinctGenSized = go HS.empty

@@ -1,8 +1,7 @@
 module Analyze.Conversions where
 
 import           Analyze.CFrame                    (CFrame (..))
-import           Analyze.Common                    (Data)
-import           Analyze.DSL                       (MissingKeyError (..))
+import           Analyze.Common                    (Data, MissingKeyError (..))
 import           Analyze.PFrame                    (PFrame (..))
 import           Analyze.RFrame                    (RFrame (..))
 import           Control.Monad.Catch               (MonadThrow (..))

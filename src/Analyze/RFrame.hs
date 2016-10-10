@@ -5,13 +5,15 @@
 
 module Analyze.RFrame where
 
-import           Analyze.Common      (Data)
-import           Analyze.Decoding    (Decoder (..), decodeRow)
+import           Analyze.Common      (Data, checkSubset)
+import           Analyze.Decoding    (Decoder (..), decodeRow, decoderKeys)
 import qualified Control.Foldl       as F
 import           Control.Monad.Catch (MonadThrow (..))
 import qualified Data.Aeson          as A
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
+import qualified Data.HashSet as HS
+import           Data.HashSet (HashSet)
 import           Data.Text           (Text)
 import qualified Data.Text           as T
 import           Data.Vector         (Vector)
@@ -41,8 +43,12 @@ rframeFold ff (RFrame kv vs) = F.foldM ff vs
 rframeFoldKV :: Monad m => F.FoldM m (Vector (k, v)) a -> RFrame k v -> m a
 rframeFoldKV = undefined
 
-rframeDecode :: (Data k, Monad m) => Decoder m k v a -> RFrame k v -> Vector (m a)
-rframeDecode decoder rframe = decodeRow decoder . HM.fromList . V.toList <$> rframeIter rframe
+rframeDecode :: (Data k, MonadThrow m) => Decoder m k v a -> RFrame k v -> m (Vector (m a))
+rframeDecode decoder rframe@(RFrame ks _) = checkSubset required keySet >> pure decoded
+  where
+    keySet = HS.fromList (V.toList ks)
+    required = decoderKeys decoder
+    decoded = decodeRow decoder . HM.fromList . V.toList <$> rframeIter rframe
 
 rframeFilter :: (Int -> Vector (k, v) -> Bool) -> RFrame k v -> RFrame k v
 rframeFilter = undefined

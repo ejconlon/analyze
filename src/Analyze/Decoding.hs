@@ -15,6 +15,8 @@ import           Control.Applicative.Free (Ap (..), liftAp)
 import qualified Control.Foldl            as F
 import           Data.HashMap.Strict      (HashMap)
 import qualified Data.HashMap.Strict      as HM
+import           Data.HashSet             (HashSet)
+import qualified Data.HashSet             as HS
 import           Data.Maybe               (fromMaybe)
 import           Data.Profunctor          (Profunctor (..))
 import           Data.Vector              (Vector)
@@ -30,12 +32,12 @@ newtype Decoder m k v a = Decoder (Ap (Arg m k v) a) deriving (Functor, Applicat
 fromArg :: Arg m k v a -> Decoder m k v a
 fromArg = Decoder . liftAp
 
-decoderKeys :: Decoder m k v a -> [k]
+decoderKeys :: Data k => Decoder m k v a -> [k]
 decoderKeys (Decoder x) = go x
   where
     go :: Ap (Arg m k v) a -> [k]
     go (Pure _)            = []
-    go (Ap (Arg k _) rest) = k : (go rest)
+    go (Ap (Arg k _) rest) = k : go rest
 
 -- This is pretty sensitive to 'lets'
 apRow :: (Data k, Monad m) => Ap (Arg m k v) a -> HashMap k v -> m a
