@@ -1,7 +1,7 @@
 module Analyze.PFrame where
 
 import           Analyze.Common      (Data)
-import           Analyze.Decoding    (Decoder (..), decodeRow)
+import           Analyze.Decoding    (Decoder (..), runDecoder)
 import qualified Control.Foldl       as F
 import           Control.Monad.Catch (MonadThrow (..))
 import           Data.Vector         (Vector)

@@ -5,15 +5,15 @@
 
 module Analyze.RFrame where
 
-import           Analyze.Common      (Data, checkSubset)
-import           Analyze.Decoding    (Decoder (..), decodeRow, decoderKeys)
+import           Analyze.Common      (Data, checkSubset, lookupOrThrow)
+import           Analyze.Decoding    (Decoder (..), decoderKeys, runDecoder)
 import qualified Control.Foldl       as F
 import           Control.Monad.Catch (MonadThrow (..))
 import qualified Data.Aeson          as A
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.HashSet as HS
-import           Data.HashSet (HashSet)
+import           Data.HashSet        (HashSet)
 import           Data.Text           (Text)
 import qualified Data.Text           as T
 import           Data.Vector         (Vector)
@@ -48,7 +48,8 @@ rframeDecode decoder rframe@(RFrame ks _) = checkSubset required keySet >> pure 
   where
     keySet = HS.fromList (V.toList ks)
     required = decoderKeys decoder
-    decoded = decodeRow decoder . HM.fromList . V.toList <$> rframeIter rframe
+    makeLookup = flip lookupOrThrow . HM.fromList . V.toList
+    decoded = runDecoder decoder . makeLookup <$> rframeIter rframe
 
 rframeFilter :: (Int -> Vector (k, v) -> Bool) -> RFrame k v -> RFrame k v
 rframeFilter = undefined

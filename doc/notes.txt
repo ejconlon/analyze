@@ -1,4 +1,27 @@
--- Folding
+
+-- andThen :: Monad m => Arg m k v a -> (k -> a -> m b) -> Arg m k v b
+-- andThen (Arg k f) g = Arg k (\v -> f v >>= g k)
+
+-- apCol :: (Data k, Monad m) => Ap (Arg m k v) a -> HashMap k (Vector v) -> m a
+-- apCol (Pure a) _ = pure a
+-- apCol (Ap (Arg k f) rest) dat = do
+--   let vs = fromMaybe (V.empty) (HM.lookup k dat)
+--   z <- F.foldM f vs
+--   fz <- apCol rest dat
+--   return (fz z)
+
+-- decodeCol :: (Data k, Monad m) => Decoder m k v a -> HashMap k (Vector v) -> m a
+-- decodeCol (Decoder x) = apCol x
+
+-- analogous to premapM
+-- andThen :: Monad m => F.FoldM m v a -> (a -> m b) -> F.FoldM m v b
+-- andThen (F.FoldM step begin done) f = F.FoldM step begin (done >=> f)
+
+-- orElse :: Monad m => F.FoldM m v (Maybe a) -> m a -> F.FoldM m v a
+-- orElse f act = f `andThen` act'
+--   where
+--     act' Nothing  = act
+--     act' (Just x) = pure x
 
 -- filterFold :: (v -> Maybe w) -> F.Fold w z -> F.Fold v z
 -- filterFold e (F.Fold step begin done) = F.Fold step' begin done

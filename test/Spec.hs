@@ -69,7 +69,7 @@ testGen = testPropertyIO "gen" valueRFrameGen test
 
 testRowDecode :: TestTree
 testRowDecode = testCase "rowDecode" $ do
-  let decoder = require "score" floating <&> (*2)
+  let decoder = AD.requireWhere "score" floating <&> (*2)
   result <- sequenceA =<< ARF.rframeDecode decoder exampleRFrame
   V.fromList [10.0, 6.0] @?= result
 
@@ -84,7 +84,7 @@ tests = testGroup "Tests"
   [ testFixture
   --, testGen
   , testRowDecode
-  , testColDecode
+  --, testColDecode
   ]
 
 main :: IO ()

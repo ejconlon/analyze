@@ -6,7 +6,6 @@
 module Analyze.CFrame where
 
 import           Analyze.Common      (Data)
-import           Analyze.Decoding    (Decoder, decodeCol)
 import           Control.Monad.Catch (MonadThrow (..))
 import qualified Data.Aeson          as A
 import           Data.HashMap.Strict (HashMap)
@@ -29,9 +28,6 @@ instance A.ToJSON v => A.ToJSON (CFrame Text v) where
 
 cframeCols :: CFrame k v -> Int
 cframeCols (CFrame ks _ _) = V.length ks
-
-cframeDecode :: (Data k, Monad m) => Decoder m k v a -> CFrame k v -> m a
-cframeDecode decoder (CFrame _ _ dat) = decodeCol decoder dat
 
 -- Merge two CFrames with the given col merge function if overlapping
 -- Retains the order of columns as seen in the first then second (minus repeats)
