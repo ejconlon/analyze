@@ -41,3 +41,9 @@ checkSubset qs ks = forM_ qs (\q -> unless (HS.member q ks) (throwM (MissingKeyE
 
 makeLookup :: Data k => Vector k -> HashMap k Int
 makeLookup = HM.fromList . flip zip [0..] . V.toList 
+
+runLookup :: (Data k, MonadThrow m) => HashMap k Int -> Vector v -> k -> m v
+runLookup look vs k =
+  case HM.lookup k look >>= (vs V.!?) of
+    Nothing -> throwM (MissingKeyError k)
+    Just v -> pure v

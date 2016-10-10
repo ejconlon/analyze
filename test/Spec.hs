@@ -47,10 +47,6 @@ testRowDecode = testCase "rowDecode" $ do
   result <- sequenceA =<< ARF.rframeDecode decoder exampleRFrame
   V.fromList [10.0, 6.0] @?= result
 
-testColDecode :: TestTree
-testColDecode = testCase "colDecode" $ do
-  1 @?= 1
-
 -- Runner
 
 tests :: TestTree
