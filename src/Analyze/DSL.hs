@@ -1,7 +1,7 @@
 module Analyze.DSL where
 
 import           Analyze.Common      (Data)
-import           Analyze.Decoding    (Arg (..))
+import           Analyze.Decoding    (Arg (..), Decoder, fromArg)
 import           Analyze.Values
 import qualified Control.Foldl       as F
 import           Control.Monad       ((>=>))
@@ -29,8 +29,8 @@ orElse f act = f `andThen` act'
     act' Nothing  = act
     act' (Just x) = pure x
 
-require :: (Data k, MonadThrow m) => k -> (k -> v -> m a) -> Arg m k v a
-require k e = Arg k (F.generalize F.head `orElse` throwM (MissingKeyError k) `andThen` e k)
+require :: (Data k, MonadThrow m) => k -> (k -> v -> m a) -> Decoder m k v a
+require k e = fromArg (Arg k (F.generalize F.head `orElse` throwM (MissingKeyError k) `andThen` e k))
 
 textual :: (Data k, MonadThrow m) => k -> Value -> m Text
 textual _ (ValueText s) = pure s

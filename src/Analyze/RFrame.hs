@@ -44,7 +44,7 @@ rframeFoldKV = undefined
 rframeDecode :: (Data k, Monad m) => Decoder m k v a -> RFrame k v -> Vector (m a)
 rframeDecode decoder rframe = decodeRow decoder . HM.fromList . V.toList <$> rframeIter rframe
 
-rframeFilter :: (Vector (k, v) -> Bool) -> RFrame k v -> RFrame k v
+rframeFilter :: (Int -> Vector (k, v) -> Bool) -> RFrame k v -> RFrame k v
 rframeFilter = undefined
 
 -- Appends row-wise, retaining column order of the first

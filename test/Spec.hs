@@ -1,14 +1,21 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-import           Analyze.Conversions as AC
-import           Analyze.CFrame as ACF
-import           Analyze.RFrame as ARF
-import           Control.Exception (catch)
+import           Analyze.Common ((<&>))
+import qualified Analyze.Conversions as AC
+import qualified Analyze.Decoding as AD
+import           Analyze.DSL
+import qualified Analyze.CFrame as ACF
+import qualified Analyze.RFrame as ARF
+import           Control.Monad.Catch
+import qualified Data.Text as T
+import           Data.Text (Text)
+import qualified Data.Vector as V
+import           Data.Vector (Vector)
 import           Fixtures
 import           Generation
 import           Test.QuickCheck
-import           Test.QuickCheck.Property as P
+import qualified Test.QuickCheck.Property as P
 import           Test.Tasty
 import           Test.Tasty.HUnit
 import           Test.Tasty.QuickCheck
@@ -60,12 +67,19 @@ testGen = testPropertyIO "gen" valueRFrameGen test
         ccols @?= rcols
         rframe' @?= rframe
 
+testRowDecode :: TestTree
+testRowDecode = testCase "rowDecode" $ do
+  let decoder = require "score" floating <&> (*2)
+  result <- sequenceA $ ARF.rframeDecode decoder exampleRFrame
+  V.fromList [10.0, 6.0] @?= result
+
 -- Runner
 
 tests :: TestTree
 tests = testGroup "Tests"
   [ testFixture
-  , testGen
+  --, testGen
+  , testRowDecode
   ]
 
 main :: IO ()

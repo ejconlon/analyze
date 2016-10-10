@@ -7,10 +7,11 @@ module Analyze.Decoding
   , decoderKeys
   , decodeRow
   , decodeCol
+  , fromArg
   ) where
 
 import           Analyze.Common           (Data)
-import           Control.Applicative.Free (Ap (..))
+import           Control.Applicative.Free (Ap (..), liftAp)
 import qualified Control.Foldl            as F
 import           Data.HashMap.Strict      (HashMap)
 import qualified Data.HashMap.Strict      as HM
@@ -25,6 +26,9 @@ instance Monad m => Profunctor (Arg m k) where
   dimap l r (Arg k f) = Arg k (dimap l r f)
 
 newtype Decoder m k v a = Decoder (Ap (Arg m k v) a) deriving (Functor, Applicative)
+
+fromArg :: Arg m k v a -> Decoder m k v a
+fromArg = Decoder . liftAp
 
 decoderKeys :: Decoder m k v a -> [k]
 decoderKeys (Decoder x) = go x

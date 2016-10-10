@@ -39,6 +39,7 @@ cframeDecode decoder (CFrame _ _ dat) = decodeCol decoder dat
 cframeMerge :: MonadThrow m => (k -> v -> v -> v) -> CFrame k v -> CFrame k v -> m (CFrame k v)
 cframeMerge = undefined
 
+-- TODO add index to predicate
 cframeFilter :: (k -> Bool) -> CFrame k v -> CFrame k v
 cframeFilter p (CFrame ks rs cs) = CFrame ks' rs cs'
   where
