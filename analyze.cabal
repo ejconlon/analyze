@@ -15,8 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Analyze.CFrame
-                     , Analyze.Common
+  exposed-modules:     Analyze.Common
                      , Analyze.Conversions
                      , Analyze.Decoding
                      , Analyze.DSL

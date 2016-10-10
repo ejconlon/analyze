@@ -1,6 +1,5 @@
 module Fixtures where
 
-import           Analyze.CFrame      (CFrame (..))
 import           Analyze.RFrame      (RFrame (..), RFrameUpdate(..))
 import           Analyze.Values
 import qualified Control.Foldl       as F
@@ -53,17 +52,6 @@ exampleRFrameUpdate = RFrameUpdate names values
     values = V.fromList
       [ V.fromList [ValueInteger 42, ValueText "foo", ValueDouble 5.0]
       , V.fromList [ValueInteger 43, ValueText "bar", ValueDouble 3.0]
-      ]
-
-exampleCFrame :: CFrame Text Value
-exampleCFrame = CFrame names rows cols
-  where
-    names = V.fromList ["id", "name", "score"]
-    rows = 2
-    cols = HM.fromList
-      [ ("id", V.fromList [ValueInteger 42, ValueInteger 43])
-      , ("name", V.fromList [ValueText "foo", ValueText "bar"])
-      , ("score", V.fromList [ValueDouble 5.0, ValueDouble 3.0])
       ]
 
 exampleCsv :: Text
