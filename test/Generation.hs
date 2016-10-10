@@ -1,6 +1,6 @@
 module Generation where
 
-import Analyze.Common (Data)
+import Analyze.Common (Data, makeLookup)
 import Analyze.RFrame (RFrame(..))
 import Analyze.Values
 import qualified Data.HashSet as HS
@@ -37,7 +37,8 @@ rframeGenSized prod decl numRows = gen
   where
     rowGen = sequenceA (prod . snd <$> decl)
     allRowsGen = V.replicateM numRows rowGen
-    gen = RFrame (fst <$> decl) <$> allRowsGen
+    keys = fst <$> decl
+    gen = RFrame keys (makeLookup keys) <$> allRowsGen
 
 rframeGen :: Data k => (t -> Gen v) -> Vector (k, t) -> Gen (RFrame k v)
 rframeGen prod decl = sized (rframeGenSized prod decl)

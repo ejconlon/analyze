@@ -1,9 +1,9 @@
 module Analyze.Conversions where
 
 import           Analyze.CFrame                    (CFrame (..))
-import           Analyze.Common                    (Data, MissingKeyError (..))
+import           Analyze.Common                    (Data, MissingKeyError (..), makeLookup)
 import           Analyze.PFrame                    (PFrame (..))
-import           Analyze.RFrame                    (RFrame (..))
+import           Analyze.RFrame                    (RFrame (..), RFrameUpdate (..), rframeFromUpdate)
 import           Control.Monad.Catch               (MonadThrow (..))
 import           Data.HashMap.Strict               (HashMap)
 import qualified Data.HashMap.Strict               as HM
@@ -15,13 +15,13 @@ import qualified Pipes                             as P
 -- Conversions
 
 pframePack :: Monad m => RFrame k v -> PFrame m k v
-pframePack (RFrame ks vs) = PFrame ks (P.each vs)
+pframePack (RFrame ks look vs) = PFrame ks look (P.each vs)
 
 -- PFrames can be large, so beware
 -- This is generally not what you want to use since it will block
 -- until is reads everything into memory.
 pframeUnpack :: Monad m => PFrame m k v -> m (RFrame k v)
-pframeUnpack (PFrame ks vp) = result
+pframeUnpack (PFrame ks look vp) = result
   where
     unfolded =
       flip VSM.unfoldrM vp $ \p -> do
@@ -29,7 +29,7 @@ pframeUnpack (PFrame ks vp) = result
         return $ case n of
           Left ()       -> Nothing
           Right (a, p') -> Just (a, p')
-    result = (\vl -> RFrame ks (V.fromList vl)) <$> VSM.toList unfolded
+    result = (\vl -> RFrame ks look (V.fromList vl)) <$> VSM.toList unfolded
 
 project :: (Data k, MonadThrow m) => Vector k -> HashMap k v -> m (Vector v)
 project ks row = V.mapM f ks
@@ -41,16 +41,17 @@ project ks row = V.mapM f ks
 
 -- kind of the inverse of rframeIter
 projectRow :: (Data k, MonadThrow m) => Vector k -> Vector (HashMap k v) -> m (RFrame k v)
-projectRow ks rs = (\vs -> RFrame ks vs) <$> V.mapM (project ks) rs
+projectRow ks rs = do
+  vs <- V.mapM (project ks) rs
+  rframeFromUpdate (RFrameUpdate ks vs)
 
 rowToCol :: Data k => RFrame k v -> CFrame k v
-rowToCol (RFrame ks vs) = CFrame ks (V.length vs) dat
+rowToCol (RFrame ks look vs) = CFrame ks (V.length vs) dat
   where
-    dat = HM.fromList (V.toList (select <$> V.indexed ks))
-    select (i, k) = (k, (V.!i) <$> vs)
+    dat = (\i -> (V.!i) <$> vs) <$> look
 
 colToRow :: Data k => CFrame k v -> RFrame k v
-colToRow (CFrame ks rs dat) = RFrame ks vs
+colToRow (CFrame ks rs dat) = RFrame ks (makeLookup ks) vs
   where
     vs = V.generate rs f
     f i = (\k -> (dat HM.! k) V.! i) <$> ks

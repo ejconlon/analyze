@@ -1,7 +1,7 @@
 module Fixtures where
 
 import           Analyze.CFrame      (CFrame (..))
-import           Analyze.RFrame      (RFrame (..))
+import           Analyze.RFrame      (RFrame (..), RFrameUpdate(..))
 import           Analyze.Values
 import qualified Control.Foldl       as F
 import           Data.HashMap.Strict (HashMap)
@@ -46,8 +46,8 @@ exampleObj2 = V.fromList
   , ("score", ValueDouble 3.0)
   ]
 
-exampleRFrame :: RFrame Text Value
-exampleRFrame = RFrame names values
+exampleRFrameUpdate :: RFrameUpdate Text Value
+exampleRFrameUpdate = RFrameUpdate names values
   where
     names = V.fromList ["id", "name", "score"]
     values = V.fromList

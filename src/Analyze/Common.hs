@@ -39,8 +39,11 @@ checkForDupes vs = go HS.empty (V.toList vs)
 checkSubset :: (Data k, MonadThrow m) => [k] -> HashSet k -> m ()
 checkSubset qs ks = forM_ qs (\q -> unless (HS.member q ks) (throwM (MissingKeyError q)))
 
-lookupOrThrow :: (Data k, MonadThrow m) => k -> HashMap k v -> m v
-lookupOrThrow k m =
-  case HM.lookup k m of
+makeLookup :: Data k => Vector k -> HashMap k Int
+makeLookup = HM.fromList . flip zip [0..] . V.toList 
+
+lookupOrThrow :: (Data k, MonadThrow m) => k -> HashMap k Int -> Vector v -> m v
+lookupOrThrow k m vs =
+  case HM.lookup k m >>= (vs V.!?) of
     Nothing -> throwM (MissingKeyError k)
     Just v -> pure v

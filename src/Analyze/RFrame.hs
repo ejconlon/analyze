@@ -5,7 +5,7 @@
 
 module Analyze.RFrame where
 
-import           Analyze.Common      (Data, checkSubset, lookupOrThrow)
+import           Analyze.Common
 import           Analyze.Decoding    (Decoder (..), decoderKeys, runDecoder)
 import qualified Control.Foldl       as F
 import           Control.Monad.Catch (MonadThrow (..))
@@ -22,34 +22,42 @@ import qualified Data.Vector         as V
 -- In-memory row-oriented frame
 data RFrame k v = RFrame
   { rframeKeys :: !(Vector k)
+  , rframeLookup :: !(HashMap k Int)
   , rframeData :: !(Vector (Vector v))
   } deriving (Eq, Show, Functor, Foldable, Traversable)
+
+data RFrameUpdate k v = RFrameUpdate
+  { rframeUpdateKeys :: !(Vector k)
+  , rframeUpdateData :: !(Vector (Vector v))
+  } deriving (Eq, Show, Functor, Foldable, Traversable)
+
+rframeEmpty :: RFrame k v
+rframeEmpty = RFrame V.empty HM.empty V.empty
+
+rframeFromUpdate :: (Data k, MonadThrow m) => RFrameUpdate k v -> m (RFrame k v)
+rframeFromUpdate (RFrameUpdate ks vs) = checkForDupes ks >> pure (RFrame ks (makeLookup ks) vs)
 
 instance A.ToJSON v => A.ToJSON (RFrame Text v) where
   toJSON frame = A.Array (A.toJSON . HM.fromList . V.toList <$> rframeIter frame)
 
 rframeCols :: RFrame k v -> Int
-rframeCols (RFrame ks _) = V.length ks
+rframeCols (RFrame ks _ _) = V.length ks
 
 rframeRows :: RFrame k v -> Int
-rframeRows (RFrame _ vs) = V.length vs
+rframeRows (RFrame _ _ vs) = V.length vs
 
-rframeIter :: Data k => RFrame k v -> Vector (Vector (k, v))
-rframeIter (RFrame ks vs) = V.zip ks <$> vs
+rframeIter :: Eq k => RFrame k v -> Vector (Vector (k, v))
+rframeIter (RFrame ks _ vs) = V.zip ks <$> vs
 
-rframeFold :: (Data k, Monad m) => F.FoldM m (Vector v) a -> RFrame k v -> m a
-rframeFold ff (RFrame kv vs) = F.foldM ff vs
-
-rframeFoldKV :: Monad m => F.FoldM m (Vector (k, v)) a -> RFrame k v -> m a
-rframeFoldKV = undefined
+rframeFold :: (Eq k, Monad m) => F.FoldM m (Vector (k, v)) a -> RFrame k v -> m a
+rframeFold ff = F.foldM ff . rframeIter
 
 rframeDecode :: (Data k, MonadThrow m) => Decoder m k v a -> RFrame k v -> m (Vector (m a))
-rframeDecode decoder rframe@(RFrame ks _) = checkSubset required keySet >> pure decoded
+rframeDecode decoder rframe@(RFrame ks look vs) = checkSubset required keySet >> pure decoded
   where
     keySet = HS.fromList (V.toList ks)
     required = decoderKeys decoder
-    makeLookup = flip lookupOrThrow . HM.fromList . V.toList
-    decoded = runDecoder decoder . makeLookup <$> rframeIter rframe
+    decoded = runDecoder decoder . (\v -> (\k -> lookupOrThrow k look v)) <$> vs
 
 rframeFilter :: (Int -> Vector (k, v) -> Bool) -> RFrame k v -> RFrame k v
 rframeFilter = undefined

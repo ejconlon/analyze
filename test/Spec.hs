@@ -40,6 +40,7 @@ testPropertyIO name g t = testProperty name (propertyIO . t <$> g)
 
 testFixture :: TestTree
 testFixture = testCase "fixture" $ do
+  exampleRFrame <- ARF.rframeFromUpdate exampleRFrameUpdate
   (ARF.rframeKeys exampleRFrame) @?= exampleHeader
   (ARF.rframeRows exampleRFrame) @?= 2
   (ARF.rframeCols exampleRFrame) @?= 3
@@ -69,6 +70,7 @@ testGen = testPropertyIO "gen" valueRFrameGen test
 
 testRowDecode :: TestTree
 testRowDecode = testCase "rowDecode" $ do
+  exampleRFrame <- ARF.rframeFromUpdate exampleRFrameUpdate
   let decoder = AD.requireWhere "score" floating <&> (*2)
   result <- sequenceA =<< ARF.rframeDecode decoder exampleRFrame
   V.fromList [10.0, 6.0] @?= result
