@@ -31,6 +31,14 @@ data RFrameUpdate k v = RFrameUpdate
   , rframeUpdateData :: !(Vector (Vector v))
   } deriving (Eq, Show, Functor, Foldable, Traversable)
 
+data RFrameView k v = RFrameView
+  { rframeViewBase :: !(RFrame k v)
+  , rframeViewUpdates :: !(Vector (RFrameUpdate k v))
+  } deriving (Eq, Show, Functor, Foldable, Traversable)
+
+rframeFromView :: RFrameView k v -> m (RFrame k v)
+rframeFromView = undefined
+
 rframeEmpty :: RFrame k v
 rframeEmpty = RFrame V.empty HM.empty V.empty
 
@@ -61,6 +69,10 @@ rframeDecode decoder rframe@(RFrame ks look vs) = checkSubset required keySet >>
 
 rframeFilter :: (Int -> Vector (k, v) -> Bool) -> RFrame k v -> RFrame k v
 rframeFilter = undefined
+
+-- Apply an update
+rframeUpdate :: RFrameUpdate k v -> RFrame k v -> m (RFrame k v)
+rframeUpdate = undefined
 
 -- Appends row-wise, retaining column order of the first
 -- Will throw on col mismatch
