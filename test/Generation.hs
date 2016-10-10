@@ -34,17 +34,6 @@ distinctGenSized = go HS.empty
 distinctGen :: Data k => Gen k -> Gen (HashSet k)
 distinctGen = sized . distinctGenSized
 
-nameGen :: Gen Text
-nameGen = T.pack <$> listOf (choose ('a', 'z'))
-
-valueGen :: ValueType -> Gen Value
-valueGen ValueTypeText = ValueText <$> nameGen
-valueGen ValueTypeInteger = ValueInteger <$> arbitrary
-valueGen ValueTypeDouble = ValueDouble <$> arbitrary
-
-valueTypeGen :: Gen ValueType
-valueTypeGen = arbitraryBoundedEnum
-
 declGenSized :: Data k => Gen k -> Gen t -> Int -> Gen (Vector (k, t))
 declGenSized kg tg i = do
   nameSet <- distinctGen kg
@@ -64,6 +53,19 @@ rframeGenSized prod decl numRows = gen
 
 rframeGen :: Data k => (t -> Gen v) -> Vector (k, t) -> Gen (RFrame k v)
 rframeGen prod decl = sized (rframeGenSized prod decl)
+
+-- Specifics
+
+nameGen :: Gen Text
+nameGen = T.pack <$> listOf (choose ('a', 'z'))
+
+valueGen :: ValueType -> Gen Value
+valueGen ValueTypeText = ValueText <$> nameGen
+valueGen ValueTypeInteger = ValueInteger <$> arbitrary
+valueGen ValueTypeDouble = ValueDouble <$> arbitrary
+
+valueTypeGen :: Gen ValueType
+valueTypeGen = arbitraryBoundedEnum
 
 valueDeclGen :: Gen (Vector (Text, ValueType))
 valueDeclGen = declGen nameGen valueTypeGen

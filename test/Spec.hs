@@ -15,9 +15,9 @@ import           Test.Tasty.QuickCheck
 
 -- Boilerplate
 
-instance Testable Assertion where
-  property = propertyIO
-  exhaustive _ = True
+-- instance Testable Assertion where
+--   property = propertyIO
+--   exhaustive _ = True
 
 propertyIO :: Assertion -> Property
 propertyIO action = ioProperty tester
@@ -25,6 +25,9 @@ propertyIO action = ioProperty tester
     tester :: IO P.Result
     tester = catch (action >> return P.succeeded) handler
     handler (HUnitFailure err) = return P.failed { P.reason = err }
+
+testPropertyIO :: TestName -> Gen a -> (a -> Assertion) -> TestTree
+testPropertyIO name g t = testProperty name (propertyIO . t <$> g)
 
 -- Tests
 
@@ -39,16 +42,30 @@ testFixture = testCase "fixture" $ do
   (AC.rowToCol exampleRFrame) @?= exampleCFrame
   (AC.colToRow exampleCFrame) @?= exampleRFrame
 
--- testGen :: TestTree
--- testGen = testProperty "gen" $ \prop -> do
---   1 @?= 1
+testGen :: TestTree
+testGen = testPropertyIO "gen" valueRFrameGen test
+  where
+    test rframe =
+      let rkeys = ARF.rframeKeys rframe
+          rrows = ARF.rframeRows rframe
+          rcols = ARF.rframeCols rframe
+          cframe = AC.rowToCol rframe
+          ckeys = ACF.cframeKeys cframe
+          crows = ACF.cframeRows cframe
+          ccols = ACF.cframeCols cframe
+          rframe' = AC.colToRow cframe
+      in do
+        ckeys @?= rkeys
+        crows @?= rrows
+        ccols @?= rcols
+        rframe' @?= rframe
 
 -- Runner
 
 tests :: TestTree
 tests = testGroup "Tests"
   [ testFixture
-  --, testGen
+  , testGen
   ]
 
 main :: IO ()
