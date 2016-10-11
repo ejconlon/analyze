@@ -54,6 +54,7 @@ data RFrameMod m k v =
   | RFrameModDrop !(RFrameDrop k)
   | RFrameModKeep !(RFrameKeep k)
 
+-- TODO Views are useless with laziness... Remove all this and perform ops directly
 data RFrameView k v = RFrameView
   { _rframeViewBase :: !(RFrame k v)
   , _rframeViewUpdates :: !(Vector (RFrameUpdate k v))
