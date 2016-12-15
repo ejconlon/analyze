@@ -47,3 +47,8 @@ runLookup look vs k =
   case HM.lookup k look >>= (vs V.!?) of
     Nothing -> throwM (MissingKeyError k)
     Just v -> pure v
+
+assemble :: Data k => Vector k -> HashMap k Int -> Vector v -> Vector v
+assemble ks look vs = pick <$> ks
+  where
+    pick k = vs V.! (look HM.! k)

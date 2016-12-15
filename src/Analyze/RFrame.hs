@@ -72,11 +72,19 @@ filter = undefined
 update :: (Data k, MonadThrow m) => RFrameUpdate k v -> RFrame k v -> m (RFrame k v)
 update = undefined
 
-dropCols :: (Data k, MonadThrow m) => HashSet k -> RFrame k v -> m (RFrame k v)
-dropCols = undefined
+dropCols :: Data k => HashSet k -> RFrame k v -> RFrame k v
+dropCols names (RFrame ks look vs) = RFrame ks' look' vs'
+  where
+    (_, ks') = V.partition (flip HS.member names) ks
+    look' = makeLookup ks'
+    vs' = assemble ks' look <$> vs
 
-keepCols :: (Data k, MonadThrow m) => HashSet k -> RFrame k v -> m (RFrame k v)
-keepCols = undefined
+keepCols :: Data k => HashSet k -> RFrame k v -> RFrame k v
+keepCols names (RFrame ks look vs) = RFrame ks' look' vs'
+  where
+    (ks', _) = V.partition (flip HS.member names) ks
+    look' = makeLookup ks'
+    vs' = assemble ks' look <$> vs
 
 -- Appends row-wise, retaining column order of the first
 -- Will throw on col mismatch

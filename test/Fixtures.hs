@@ -45,14 +45,29 @@ exampleObj2 = V.fromList
   , ("score", ValueDouble 3.0)
   ]
 
-exampleRFrameUpdate :: RFrameUpdate Text Value
-exampleRFrameUpdate = RFrameUpdate names values
+fullUpdate :: RFrameUpdate Text Value
+fullUpdate = RFrameUpdate names values
   where
     names = V.fromList ["id", "name", "score"]
     values = V.fromList
       [ V.fromList [ValueInteger 42, ValueText "foo", ValueDouble 5.0]
       , V.fromList [ValueInteger 43, ValueText "bar", ValueDouble 3.0]
       ]
+
+noNameUpdate :: RFrameUpdate Text Value
+noNameUpdate = RFrameUpdate names values
+  where
+    names = V.fromList ["id", "score"]
+    values = V.fromList
+      [ V.fromList [ValueInteger 42, ValueDouble 5.0]
+      , V.fromList [ValueInteger 43, ValueDouble 3.0]
+      ]
+
+fixtures :: HashMap Text (RFrameUpdate Text Value)
+fixtures = HM.fromList
+  [ ("full", fullUpdate)
+  , ("noName", noNameUpdate)
+  ]
 
 exampleCsv :: Text
 exampleCsv = "id,name,score\n" `mappend` "42,foo,5.0\n" `mappend` "43,bar,3.0\n"
