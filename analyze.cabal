@@ -19,7 +19,6 @@ library
                      , Analyze.Conversions
                      , Analyze.Decoding
                      , Analyze.DSL
-                     , Analyze.PFrame
                      , Analyze.RFrame
                      , Analyze.Values
   build-depends:       base >= 4.9 && < 5
@@ -28,7 +27,6 @@ library
                      , foldl
                      , free
                      , hashable
-                     , pipes
                      , profunctors
                      , text
                      , unordered-containers

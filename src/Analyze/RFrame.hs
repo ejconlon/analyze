@@ -26,85 +26,59 @@ data RFrame k v = RFrame
   , _rframeData :: !(Vector (Vector v))
   } deriving (Eq, Show, Functor)
 
+instance A.ToJSON v => A.ToJSON (RFrame Text v) where
+  toJSON frame = A.Array (A.toJSON . HM.fromList . V.toList <$> iter frame)
+
 data RFrameUpdate k v = RFrameUpdate
   { _rframeUpdateKeys :: !(Vector k)
   , _rframeUpdateData :: !(Vector (Vector v))
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Functor)
 
-data RFrameChange m k v = RFrameChange
-  { _rframeChangeKeys :: !(Vector k)
-  , _rframeChangeDecoder :: !(Decoder m k v (Vector v))
-  }
+-- TODO ToJSON and FromJSON for RFrameUpdate
 
-data RFrameDrop k = RFrameDrop
-  { _rframeDropKeys :: !(HashSet k)
-  } deriving (Eq, Show)
+type RFrameFilter k v = HashMap k Int -> Int -> Vector v -> Bool
 
-data RFrameKeep k = RFrameKeep
-  { _rframeKeepKeys :: !(Vector k)
-  } deriving (Eq, Show)
+empty :: RFrame k v
+empty = RFrame V.empty HM.empty V.empty
 
-data RFrameFilter m k v = RFrameFilter
-  { _rframeFilterFun :: !(Int -> HashMap k Int -> Vector v -> m Bool)
-  }
+fromUpdate :: (Data k, MonadThrow m) => RFrameUpdate k v -> m (RFrame k v)
+fromUpdate (RFrameUpdate ks vs) = checkForDupes ks >> pure (RFrame ks (makeLookup ks) vs)
 
-data RFrameMod m k v =
-    RFrameModChange !(RFrameChange m k v)
-  | RFrameModFilter !(RFrameFilter m k v)
-  | RFrameModDrop !(RFrameDrop k)
-  | RFrameModKeep !(RFrameKeep k)
+toUpdate :: Data k => RFrame k v -> RFrameUpdate k v
+toUpdate (RFrame ks _ vs) = RFrameUpdate ks vs
 
--- TODO Views are useless with laziness... Remove all this and perform ops directly
-data RFrameView k v = RFrameView
-  { _rframeViewBase :: !(RFrame k v)
-  , _rframeViewUpdates :: !(Vector (RFrameUpdate k v))
-  , _rframeViewCols :: !Int
-  } deriving (Eq, Show)
+cols :: RFrame k v -> Int
+cols (RFrame ks _ _) = V.length ks
 
-makeViewLookup :: (Data k, MonadThrow m) => RFrameView k v -> m (HashMap k Int)
-makeViewLookup = undefined
+rows :: RFrame k v -> Int
+rows (RFrame _ _ vs) = V.length vs
 
-rframeFromView :: (Data k, MonadThrow m) => RFrameView k v -> m (RFrame k v)
-rframeFromView = undefined
+iter :: Eq k => RFrame k v -> Vector (Vector (k, v))
+iter (RFrame ks _ vs) = V.zip ks <$> vs
 
-rframeEmpty :: RFrame k v
-rframeEmpty = RFrame V.empty HM.empty V.empty
-
-rframeFromUpdate :: (Data k, MonadThrow m) => RFrameUpdate k v -> m (RFrame k v)
-rframeFromUpdate (RFrameUpdate ks vs) = checkForDupes ks >> pure (RFrame ks (makeLookup ks) vs)
-
-instance A.ToJSON v => A.ToJSON (RFrame Text v) where
-  toJSON frame = A.Array (A.toJSON . HM.fromList . V.toList <$> rframeIter frame)
-
-rframeCols :: RFrame k v -> Int
-rframeCols (RFrame ks _ _) = V.length ks
-
-rframeRows :: RFrame k v -> Int
-rframeRows (RFrame _ _ vs) = V.length vs
-
-rframeIter :: Eq k => RFrame k v -> Vector (Vector (k, v))
-rframeIter (RFrame ks _ vs) = V.zip ks <$> vs
-
-rframeDecode :: (Data k, MonadThrow m) => Decoder m k v a -> RFrame k v -> m (Vector (m a))
-rframeDecode decoder rframe@(RFrame ks look vs) = checkSubset required keySet >> pure decoded
+decode :: (Data k, MonadThrow m) => Decoder m k v a -> RFrame k v -> m (Vector (m a))
+decode decoder rframe@(RFrame ks look vs) = checkSubset required keySet >> pure decoded
   where
     keySet = HS.fromList (V.toList ks)
     required = decoderKeys decoder
     decoded = runDecoder decoder . runLookup look <$> vs
 
--- rframeFilter :: (Int -> Vector (k, v) -> Bool) -> RFrame k v -> RFrame k v
--- rframeFilter = undefined
+-- bind :: (Data k, MonadThrow m) => Decoder m k v (RFrameUpdate k v) -> RFrame k v -> m (RFrame k v)
+-- bind decoder rframe@(RFrame ks look vs) = undefined
 
-rframeUpdate :: (Data k, MonadThrow m) => RFrameUpdate k v -> RFrame k v -> m (RFrameView k v)
-rframeUpdate = undefined
+filter :: Data k => RFrameFilter k v -> RFrame k v -> RFrame k v
+filter = undefined
 
-rframeDrop :: (Data k, MonadThrow m) => RFrameDrop k -> RFrame k v -> m (RFrameView k v)
-rframeDrop = undefined
+update :: (Data k, MonadThrow m) => RFrameUpdate k v -> RFrame k v -> m (RFrame k v)
+update = undefined
 
-rframeKeep :: (Data k, MonadThrow m) => RFrameDrop k -> RFrame k v -> m (RFrameView k v)
-rframeKeep = undefined
+dropCols :: (Data k, MonadThrow m) => HashSet k -> RFrame k v -> m (RFrame k v)
+dropCols = undefined
+
+keepCols :: (Data k, MonadThrow m) => HashSet k -> RFrame k v -> m (RFrame k v)
+keepCols = undefined
 
 -- Appends row-wise, retaining column order of the first
 -- Will throw on col mismatch
-rframeAppend :: MonadThrow m => RFrame k v -> RFrame k v -> m (RFrame k v)
-rframeAppend = undefined
+append :: MonadThrow m => RFrame k v -> RFrame k v -> m (RFrame k v)
+append = undefined
