@@ -27,6 +27,9 @@ instance (Show k, Typeable k) => Exception (MissingKeyError k)
 data DuplicateKeyError k = DuplicateKeyError k deriving (Show, Eq, Typeable)
 instance (Show k, Typeable k) => Exception (DuplicateKeyError k)
 
+data LengthMismatch = LengthMismatch Int Int deriving (Show, Eq, Typeable)
+instance Exception LengthMismatch
+
 checkForDupes :: (Data k, MonadThrow m) => Vector k -> m ()
 checkForDupes vs = go HS.empty (V.toList vs)
   where

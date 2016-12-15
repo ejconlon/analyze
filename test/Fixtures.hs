@@ -63,10 +63,24 @@ noNameUpdate = RFrameUpdate names values
       , V.fromList [ValueInteger 43, ValueDouble 3.0]
       ]
 
+colorUpdate :: RFrameUpdate Text Value
+colorUpdate = RFrameUpdate names values
+  where
+    names = V.fromList ["color"]
+    values = V.fromList
+      [ V.fromList [ValueText "purple"]
+      , V.fromList [ValueText "orange"]
+      ]
+
+emptyUpdate :: RFrameUpdate Text Value
+emptyUpdate = RFrameUpdate V.empty (V.replicate 2 (V.empty))
+
 fixtures :: HashMap Text (RFrameUpdate Text Value)
 fixtures = HM.fromList
   [ ("full", fullUpdate)
   , ("noName", noNameUpdate)
+  , ("color", colorUpdate)
+  , ("empty", emptyUpdate)
   ]
 
 exampleCsv :: Text

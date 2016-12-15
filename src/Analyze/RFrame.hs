@@ -70,7 +70,16 @@ filter :: Data k => RFrameFilter k v -> RFrame k v -> RFrame k v
 filter = undefined
 
 update :: (Data k, MonadThrow m) => RFrameUpdate k v -> RFrame k v -> m (RFrame k v)
-update = undefined
+update (RFrameUpdate uks uvs) (RFrame fks look fvs) = do
+  let fSize = V.length fvs
+      uSize = V.length uvs
+  if fSize /= uSize
+    then throwM (LengthMismatch fSize uSize)
+    else return (RFrame ks' look' vs')
+      where
+        ks' = fks V.++ uks
+        look' = makeLookup ks'
+        vs' = V.zipWith (V.++) fvs uvs
 
 dropCols :: Data k => HashSet k -> RFrame k v -> RFrame k v
 dropCols names (RFrame ks look vs) = RFrame ks' look' vs'
@@ -88,5 +97,8 @@ keepCols names (RFrame ks look vs) = RFrame ks' look' vs'
 
 -- Appends row-wise, retaining column order of the first
 -- Will throw on col mismatch
-append :: MonadThrow m => RFrame k v -> RFrame k v -> m (RFrame k v)
-append = undefined
+appendRows :: MonadThrow m => RFrame k v -> RFrame k v -> m (RFrame k v)
+appendRows = undefined
+
+appendCols :: MonadThrow m => RFrame k v -> RFrame k v -> m (RFrame k v)
+appendCols = undefined
