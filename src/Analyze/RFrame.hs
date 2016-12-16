@@ -47,11 +47,11 @@ fromUpdate (RFrameUpdate ks vs) = checkForDupes ks >> pure (RFrame ks (makeLooku
 toUpdate :: Data k => RFrame k v -> RFrameUpdate k v
 toUpdate (RFrame ks _ vs) = RFrameUpdate ks vs
 
-cols :: RFrame k v -> Int
-cols (RFrame ks _ _) = V.length ks
+numCols :: RFrame k v -> Int
+numCols (RFrame ks _ _) = V.length ks
 
-rows :: RFrame k v -> Int
-rows (RFrame _ _ vs) = V.length vs
+numRows :: RFrame k v -> Int
+numRows (RFrame _ _ vs) = V.length vs
 
 iter :: Eq k => RFrame k v -> Vector (Vector (k, v))
 iter (RFrame ks _ vs) = V.zip ks <$> vs
@@ -75,11 +75,13 @@ update (RFrameUpdate uks uvs) (RFrame fks look fvs) = do
       uSize = V.length uvs
   if fSize /= uSize
     then throwM (LengthMismatch fSize uSize)
-    else return (RFrame ks' look' vs')
-      where
-        ks' = fks V.++ uks
-        look' = makeLookup ks'
-        vs' = V.zipWith (V.++) fvs uvs
+    else do
+      checkForDupes uks
+      let kis = mergeKeys fks uks
+          ks' = (\(k, _, _) -> k) <$> kis
+          look' = makeLookup ks'
+          vs' = V.zipWith (runIndexedLookup kis) fvs uvs
+      return (RFrame ks' look' vs')
 
 dropCols :: Data k => HashSet k -> RFrame k v -> RFrame k v
 dropCols names (RFrame ks look vs) = RFrame ks' look' vs'
@@ -100,5 +102,5 @@ keepCols names (RFrame ks look vs) = RFrame ks' look' vs'
 appendRows :: MonadThrow m => RFrame k v -> RFrame k v -> m (RFrame k v)
 appendRows = undefined
 
-appendCols :: MonadThrow m => RFrame k v -> RFrame k v -> m (RFrame k v)
-appendCols = undefined
+extendCols :: MonadThrow m => RFrame k v -> RFrame k v -> m (RFrame k v)
+extendCols = undefined

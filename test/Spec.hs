@@ -52,8 +52,8 @@ testFixture :: TestTree
 testFixture = testCase "fixture" $ do
   frame <- getFrameFixture "full"
   (ARF._rframeKeys frame) @?= exampleHeader
-  (ARF.rows frame) @?= 2
-  (ARF.cols frame) @?= 3
+  (ARF.numRows frame) @?= 2
+  (ARF.numCols frame) @?= 3
 
 testRowDecode :: TestTree
 testRowDecode = testCase "rowDecode" $ do
@@ -66,8 +66,8 @@ testDrop :: TestTree
 testDrop = testCase "drop" $ do
   original <- getFrameFixture "full"
   expected <- getFrameFixture "noName"
-  (ARF.cols original) @?= 3
-  (ARF.cols expected) @?= 2
+  (ARF.numCols original) @?= 3
+  (ARF.numCols expected) @?= 2
   let actual = ARF.dropCols (HS.singleton "name") original
   (ARF._rframeKeys actual) @?= (ARF._rframeKeys expected)
 
@@ -75,8 +75,8 @@ testKeep :: TestTree
 testKeep = testCase "keep" $ do
   original <- getFrameFixture "full"
   expected <- getFrameFixture "noName"
-  (ARF.cols original) @?= 3
-  (ARF.cols expected) @?= 2
+  (ARF.numCols original) @?= 3
+  (ARF.numCols expected) @?= 2
   let actual = ARF.keepCols (HS.fromList ["id", "score"]) original
   (ARF._rframeKeys actual) @?= (ARF._rframeKeys expected)
 
@@ -103,6 +103,14 @@ testUpdateAdd = testCase "update add" $ do
   actual <- ARF.update update frame
   actual @?= expected
 
+testUpdateOverlap :: TestTree
+testUpdateOverlap = testCase "update overlap" $ do
+  frame <- getFrameFixture "full"
+  update <- getUpdateFixture "overlap"
+  expected <- getFrameFixture "fullOverlap"
+  actual <- ARF.update update frame
+  actual @?= expected
+
 -- Runner
 
 tests :: TestTree
@@ -114,6 +122,7 @@ tests = testGroup "Tests"
   , testUpdateEmpty
   , testUpdateEmpty2
   , testUpdateAdd
+  , testUpdateOverlap
   ]
 
 main :: IO ()

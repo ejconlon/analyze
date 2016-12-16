@@ -55,3 +55,16 @@ assemble :: Data k => Vector k -> HashMap k Int -> Vector v -> Vector v
 assemble ks look vs = pick <$> ks
   where
     pick k = vs V.! (look HM.! k)
+
+mergeKeys :: Data k => Vector k -> Vector k -> Vector (k, Int, Int)
+mergeKeys xs ys =
+  let m = HM.fromList (V.toList (V.imap (\i x -> (x, (0, i))) xs))
+      n = HM.fromList (V.toList (V.imap (\i x -> (x, (1, i))) ys))
+      -- Ties go to the first argument, in this case favoring the update
+      o = HM.union n m
+      p = (\x -> let (a, b) = o HM.! x in (x, a, b)) <$> xs
+      q = (\x -> let (a, b) = n HM.! x in (x, a, b)) <$> (V.filter (\x -> not (HM.member x m)) ys)
+  in p V.++ q
+
+runIndexedLookup :: Vector (k, Int, Int) -> Vector v -> Vector v -> Vector v
+runIndexedLookup ks xs ys = (\(k, i, j) -> (if i == 0 then xs else ys) V.! j) <$> ks
