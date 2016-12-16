@@ -72,6 +72,33 @@ colorUpdate = RFrameUpdate names values
       , V.fromList [ValueText "orange"]
       ]
 
+fullColorUpdate :: RFrameUpdate Text Value
+fullColorUpdate = RFrameUpdate names values
+  where
+    names = V.fromList ["id", "name", "score", "color"]
+    values = V.fromList
+      [ V.fromList [ValueInteger 42, ValueText "foo", ValueDouble 5.0, ValueText "purple"]
+      , V.fromList [ValueInteger 43, ValueText "bar", ValueDouble 3.0, ValueText "orange"]
+      ]
+
+overlapUpdate :: RFrameUpdate Text Value
+overlapUpdate = RFrameUpdate names values
+  where
+    names = V.fromList ["color", "score"]
+    values = V.fromList
+      [ V.fromList [ValueText "purple", ValueDouble 10.0]
+      , V.fromList [ValueText "orange", ValueDouble 6.0]
+      ]
+
+fullOverlapUpdate :: RFrameUpdate Text Value
+fullOverlapUpdate = RFrameUpdate names values
+  where
+    names = V.fromList ["id", "name", "score", "color"]
+    values = V.fromList
+      [ V.fromList [ValueInteger 42, ValueText "foo", ValueDouble 10.0, ValueText "purple"]
+      , V.fromList [ValueInteger 43, ValueText "bar", ValueDouble 6.0, ValueText "orange"]
+      ]
+
 emptyUpdate :: RFrameUpdate Text Value
 emptyUpdate = RFrameUpdate V.empty (V.replicate 2 (V.empty))
 
@@ -81,6 +108,9 @@ fixtures = HM.fromList
   , ("noName", noNameUpdate)
   , ("color", colorUpdate)
   , ("empty", emptyUpdate)
+  , ("fullColor", fullColorUpdate)
+  , ("overlap", overlapUpdate)
+  , ("fullOverlap", fullOverlapUpdate)
   ]
 
 exampleCsv :: Text

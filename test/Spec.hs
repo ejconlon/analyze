@@ -95,6 +95,14 @@ testUpdateEmpty2 = testCase "update empty 2" $ do
   actual <- ARF.update update frame
   actual @?= frame
 
+testUpdateAdd :: TestTree
+testUpdateAdd = testCase "update add" $ do
+  frame <- getFrameFixture "full"
+  update <- getUpdateFixture "color"
+  expected <- getFrameFixture "fullColor"
+  actual <- ARF.update update frame
+  actual @?= expected
+
 -- Runner
 
 tests :: TestTree
@@ -105,6 +113,7 @@ tests = testGroup "Tests"
   , testKeep
   , testUpdateEmpty
   , testUpdateEmpty2
+  , testUpdateAdd
   ]
 
 main :: IO ()
