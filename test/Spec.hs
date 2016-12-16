@@ -13,6 +13,7 @@ import qualified Data.Text as T
 import           Data.Text (Text)
 import qualified Data.Vector as V
 import           Data.Vector (Vector)
+import           Datasets
 import           Fixtures
 import           Generation
 import           Test.QuickCheck
@@ -110,6 +111,25 @@ testUpdateOverlap = testCase "update overlap" $ do
   actual <- ARF.update update frame
   actual @?= expected
 
+testTitanic :: TestTree
+testTitanic = testCase "load titanic" $ do
+  frame <- datasetWithHeader "titanic" "test"
+  let expectedCols = V.fromList
+        [ "PassengerId"
+        , "Pclass"
+        , "Name"
+        , "Sex"
+        , "Age"
+        , "SibSp"
+        , "Parch"
+        , "Ticket"
+        , "Fare"
+        , "Cabin"
+        , "Embarked"
+        ]
+  ARF._rframeKeys frame @?= expectedCols
+  ARF.numRows frame @?= 418
+
 -- Runner
 
 tests :: TestTree
@@ -122,6 +142,7 @@ tests = testGroup "Tests"
   , testUpdateEmpty2
   , testUpdateAdd
   , testUpdateOverlap
+  , testTitanic
   ]
 
 main :: IO ()
