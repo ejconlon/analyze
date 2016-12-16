@@ -63,18 +63,17 @@ decode decoder rframe@(RFrame ks look vs) = checkSubset required keySet >> pure 
     required = decoderKeys decoder
     decoded = runDecoder decoder . runLookup look <$> vs
 
--- bind :: (Data k, MonadThrow m) => Decoder m k v (RFrameUpdate k v) -> RFrame k v -> m (RFrame k v)
--- bind decoder rframe@(RFrame ks look vs) = undefined
-
 filter :: Data k => RFrameFilter k v -> RFrame k v -> RFrame k v
-filter = undefined
+filter p (RFrame ks look vs) = RFrame ks look vs'
+  where
+    vs' = V.ifilter (p look) vs
 
 update :: (Data k, MonadThrow m) => RFrameUpdate k v -> RFrame k v -> m (RFrame k v)
 update (RFrameUpdate uks uvs) (RFrame fks look fvs) = do
   let fSize = V.length fvs
       uSize = V.length uvs
   if fSize /= uSize
-    then throwM (LengthMismatch fSize uSize)
+    then throwM (RowSizeMismatch fSize uSize)
     else do
       checkForDupes uks
       let kis = mergeKeys fks uks
@@ -99,8 +98,11 @@ keepCols names (RFrame ks look vs) = RFrame ks' look' vs'
 
 -- Appends row-wise, retaining column order of the first
 -- Will throw on col mismatch
-appendRows :: MonadThrow m => RFrame k v -> RFrame k v -> m (RFrame k v)
-appendRows = undefined
+appendRows :: (Data k, MonadThrow m) => RFrame k v -> RFrame k v -> m (RFrame k v)
+appendRows (RFrame ks0 look0 vs0) (RFrame ks1 look1 vs1) = do
+  checkReorder ks0 ks1
+  let vs1' = reorder ks0 look1 vs1
+  return (RFrame ks0 look0 (vs0 V.++ vs1'))
 
-extendCols :: MonadThrow m => RFrame k v -> RFrame k v -> m (RFrame k v)
-extendCols = undefined
+extendCols :: (Data k, MonadThrow m) => RFrame k v -> RFrame k v -> m (RFrame k v)
+extendCols f g = update (toUpdate g) f

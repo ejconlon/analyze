@@ -29,8 +29,11 @@ instance (Show k, Typeable k) => Exception (MissingKeyError k)
 data DuplicateKeyError k = DuplicateKeyError k deriving (Show, Eq, Typeable)
 instance (Show k, Typeable k) => Exception (DuplicateKeyError k)
 
-data LengthMismatch = LengthMismatch Int Int deriving (Show, Eq, Typeable)
-instance Exception LengthMismatch
+data ColSizeMismatch = ColSizeMismatch Int Int deriving (Show, Eq, Typeable)
+instance Exception ColSizeMismatch
+
+data RowSizeMismatch = RowSizeMismatch Int Int deriving (Show, Eq, Typeable)
+instance Exception RowSizeMismatch
 
 checkForDupes :: (Data k, MonadThrow m) => Vector k -> m ()
 checkForDupes vs = go HS.empty (V.toList vs)
@@ -40,6 +43,14 @@ checkForDupes vs = go HS.empty (V.toList vs)
       if HS.member k s
         then throwM (DuplicateKeyError k)
         else go (HS.insert k s) ks
+
+checkReorder :: (Data k, MonadThrow m) => Vector k -> Vector k -> m ()
+checkReorder xs ys =
+  let xSize = V.length xs
+      ySize = V.length ys
+  in if xSize /= ySize
+    then throwM (ColSizeMismatch xSize ySize)
+    else checkSubset (V.toList xs) (HS.fromList (V.toList ys))
 
 checkSubset :: (Data k, MonadThrow m) => [k] -> HashSet k -> m ()
 checkSubset qs ks = forM_ qs (\q -> unless (HS.member q ks) (throwM (MissingKeyError q)))
@@ -70,3 +81,6 @@ mergeKeys xs ys =
 
 runIndexedLookup :: Vector (k, Int, Int) -> Vector v -> Vector v -> Vector v
 runIndexedLookup ks xs ys = (\(k, i, j) -> (if i == 0 then xs else ys) V.! j) <$> ks
+
+reorder :: Data k => Vector k -> HashMap k Int -> Vector v -> Vector v
+reorder ks look vs = (\k -> vs V.! (look HM.! k)) <$> ks
