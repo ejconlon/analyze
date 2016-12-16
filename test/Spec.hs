@@ -4,7 +4,6 @@
 import           Analyze.Common ((<&>))
 import qualified Analyze.Conversions as AC
 import qualified Analyze.Decoding as AD
-import           Analyze.DSL
 import qualified Analyze.RFrame as ARF
 import           Analyze.Values
 import           Control.Monad.Catch

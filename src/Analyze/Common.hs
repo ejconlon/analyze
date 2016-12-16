@@ -1,5 +1,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 
+-- Common internal things (no other internal deps)
+
 module Analyze.Common where
 
 import           Control.Exception

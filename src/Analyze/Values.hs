@@ -1,6 +1,9 @@
 module Analyze.Values where
 
-import           Data.Text (Text)
+import Analyze.Common (Data)
+import Control.Monad.Catch (Exception, MonadThrow (..))
+import Data.Text (Text)
+import Data.Typeable (Typeable)
 
 data ValueType =
     ValueTypeText
@@ -30,3 +33,18 @@ getInteger _                = Nothing
 getDouble :: Value -> Maybe Double
 getDouble (ValueDouble d) = Just d
 getDouble _               = Nothing
+
+data ValueTypeError k = ValueTypeError k ValueType Value deriving (Show, Eq, Typeable)
+instance (Show k, Typeable k) => Exception (ValueTypeError k)
+
+textual :: (Data k, MonadThrow m) => k -> Value -> m Text
+textual _ (ValueText s) = pure s
+textual k v             = throwM (ValueTypeError k ValueTypeText v)
+
+integral :: (Data k, MonadThrow m) => k -> Value -> m Integer
+integral _ (ValueInteger s) = pure s
+integral k v                = throwM (ValueTypeError k ValueTypeInteger v)
+
+floating :: (Data k, MonadThrow m) => k -> Value -> m Double
+floating _ (ValueDouble s) = pure s
+floating k v               = throwM (ValueTypeError k ValueTypeDouble v)
