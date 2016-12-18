@@ -25,7 +25,7 @@ data RFrame k v = RFrame
   } deriving (Eq, Show, Functor)
 
 instance A.ToJSON v => A.ToJSON (RFrame Text v) where
-  toJSON frame = A.Array (A.toJSON . HM.fromList . V.toList <$> iter frame)
+  toJSON frame = A.Array (iter (\ks _ _ v -> A.toJSON (HM.fromList (V.toList (V.zip ks v)))) frame)
 
 data RFrameUpdate k v = RFrameUpdate
   { _rframeUpdateKeys :: !(Vector k)
@@ -34,7 +34,11 @@ data RFrameUpdate k v = RFrameUpdate
 
 -- TODO ToJSON and FromJSON for RFrameUpdate
 
-type RFrameFilter k v = HashMap k Int -> Int -> Vector v -> Bool
+type RFrameMap k v a = Vector k -> HashMap k Int -> Int -> Vector v -> a
+
+type RFrameFilter k v = RFrameMap k v Bool
+
+type RFrameBind k v w = RFrameMap k v (Vector (Vector w))
 
 empty :: RFrame k v
 empty = RFrame V.empty HM.empty V.empty
@@ -51,8 +55,8 @@ numCols (RFrame ks _ _) = V.length ks
 numRows :: RFrame k v -> Int
 numRows (RFrame _ _ vs) = V.length vs
 
-iter :: Eq k => RFrame k v -> Vector (Vector (k, v))
-iter (RFrame ks _ vs) = V.zip ks <$> vs
+iter :: Eq k => RFrameMap k v a -> RFrame k v -> Vector a
+iter m (RFrame ks look vs) = undefined
 
 decode :: (Data k, MonadThrow m) => Decoder m k v a -> RFrame k v -> m (Vector (m a))
 decode decoder rframe@(RFrame ks look vs) = checkSubset required keySet >> pure decoded
@@ -64,7 +68,7 @@ decode decoder rframe@(RFrame ks look vs) = checkSubset required keySet >> pure 
 filter :: Data k => RFrameFilter k v -> RFrame k v -> RFrame k v
 filter p (RFrame ks look vs) = RFrame ks look vs'
   where
-    vs' = V.ifilter (p look) vs
+    vs' = V.ifilter (p ks look) vs
 
 update :: (Data k, MonadThrow m) => RFrameUpdate k v -> RFrame k v -> m (RFrame k v)
 update (RFrameUpdate uks uvs) (RFrame fks look fvs) = do
@@ -80,19 +84,23 @@ update (RFrameUpdate uks uvs) (RFrame fks look fvs) = do
           vs' = V.zipWith (runIndexedLookup kis) fvs uvs
       return (RFrame ks' look' vs')
 
-dropCols :: Data k => HashSet k -> RFrame k v -> RFrame k v
-dropCols names (RFrame ks look vs) = RFrame ks' look' vs'
-  where
-    (_, ks') = V.partition (`HS.member` names) ks
-    look' = makeLookup ks'
-    vs' = assemble ks' look <$> vs
+bind :: (Data k, Data j, MonadThrow m) => Vector j -> RFrameBind k v w -> RFrame k v -> m (RFrame j w)
+bind = undefined
 
-keepCols :: Data k => HashSet k -> RFrame k v -> RFrame k v
-keepCols names (RFrame ks look vs) = RFrame ks' look' vs'
+splitCols :: Data k => (k -> Bool) -> RFrame k v -> (RFrame k v, RFrame k v)
+splitCols p (RFrame ks look vs) = (RFrame keepKs keepLook keepVs, RFrame dropKs dropLook dropVs)
   where
-    (ks', _) = V.partition (`HS.member` names) ks
-    look' = makeLookup ks'
-    vs' = assemble ks' look <$> vs
+    (keepKs, dropKs) = V.partition p ks
+    keepLook = makeLookup keepKs
+    keepVs = assemble keepKs look <$> vs
+    dropLook = makeLookup dropKs
+    dropVs = assemble dropKs look <$> vs
+
+dropCols :: Data k => (k -> Bool) -> RFrame k v -> RFrame k v
+dropCols p frame = snd (splitCols p frame)
+
+keepCols :: Data k => (k -> Bool) -> RFrame k v -> RFrame k v
+keepCols p frame = fst (splitCols p frame)
 
 -- Appends row-wise, retaining column order of the first
 -- Will throw on col mismatch

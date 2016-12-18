@@ -68,7 +68,8 @@ testDrop = testCase "drop" $ do
   expected <- getFrameFixture "noName"
   ARF.numCols original @?= 3
   ARF.numCols expected @?= 2
-  let actual = ARF.dropCols (HS.singleton "name") original
+  let names = HS.singleton "name"
+  let actual = ARF.dropCols (`HS.member` names) original
   ARF._rframeKeys actual @?= ARF._rframeKeys expected
 
 testKeep :: TestTree
@@ -77,7 +78,8 @@ testKeep = testCase "keep" $ do
   expected <- getFrameFixture "noName"
   ARF.numCols original @?= 3
   ARF.numCols expected @?= 2
-  let actual = ARF.keepCols (HS.fromList ["id", "score"]) original
+  let names = HS.fromList ["id", "score"]
+  let actual = ARF.keepCols (`HS.member` names) original
   ARF._rframeKeys actual @?= ARF._rframeKeys expected
 
 testUpdateEmpty :: TestTree
