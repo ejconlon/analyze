@@ -76,7 +76,7 @@ mergeKeys xs ys =
       -- Ties go to the first argument, in this case favoring the update
       o = HM.union n m
       p = (\x -> let (a, b) = o HM.! x in (x, a, b)) <$> xs
-      q = (\x -> let (a, b) = n HM.! x in (x, a, b)) <$> (V.filter (\x -> not (HM.member x m)) ys)
+      q = (\x -> let (a, b) = n HM.! x in (x, a, b)) <$> V.filter (\x -> not (HM.member x m)) ys
   in p V.++ q
 
 runIndexedLookup :: Vector (k, Int, Int) -> Vector v -> Vector v -> Vector v

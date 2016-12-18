@@ -40,7 +40,7 @@ getUpdateFixture :: Text -> IO (ARF.RFrameUpdate Text Value)
 getUpdateFixture name =
   case HM.lookup name fixtures of
     Just u  -> return u
-    Nothing -> error ("fixture not found: " ++ (T.unpack name))
+    Nothing -> error ("fixture not found: " ++ T.unpack name)
 
 
 getFrameFixture :: Text -> IO (ARF.RFrame Text Value)
@@ -51,9 +51,9 @@ getFrameFixture name = ARF.fromUpdate =<< getUpdateFixture name
 testFixture :: TestTree
 testFixture = testCase "fixture" $ do
   frame <- getFrameFixture "full"
-  (ARF._rframeKeys frame) @?= exampleHeader
-  (ARF.numRows frame) @?= 2
-  (ARF.numCols frame) @?= 3
+  ARF._rframeKeys frame @?= exampleHeader
+  ARF.numRows frame @?= 2
+  ARF.numCols frame @?= 3
 
 testRowDecode :: TestTree
 testRowDecode = testCase "rowDecode" $ do
@@ -66,19 +66,19 @@ testDrop :: TestTree
 testDrop = testCase "drop" $ do
   original <- getFrameFixture "full"
   expected <- getFrameFixture "noName"
-  (ARF.numCols original) @?= 3
-  (ARF.numCols expected) @?= 2
+  ARF.numCols original @?= 3
+  ARF.numCols expected @?= 2
   let actual = ARF.dropCols (HS.singleton "name") original
-  (ARF._rframeKeys actual) @?= (ARF._rframeKeys expected)
+  ARF._rframeKeys actual @?= ARF._rframeKeys expected
 
 testKeep :: TestTree
 testKeep = testCase "keep" $ do
   original <- getFrameFixture "full"
   expected <- getFrameFixture "noName"
-  (ARF.numCols original) @?= 3
-  (ARF.numCols expected) @?= 2
+  ARF.numCols original @?= 3
+  ARF.numCols expected @?= 2
   let actual = ARF.keepCols (HS.fromList ["id", "score"]) original
-  (ARF._rframeKeys actual) @?= (ARF._rframeKeys expected)
+  ARF._rframeKeys actual @?= ARF._rframeKeys expected
 
 testUpdateEmpty :: TestTree
 testUpdateEmpty = testCase "update empty" $ do

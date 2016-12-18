@@ -29,6 +29,6 @@ decodeWithoutHeader bs =
       if V.null rows
         then return empty
         else do
-          let ks = V.imap (\i _ -> i) (V.head rows)
+          let ks = V.imap const (V.head rows)
               update = RFrameUpdate ks rows
           fromUpdate update

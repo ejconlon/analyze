@@ -100,7 +100,7 @@ fullOverlapUpdate = RFrameUpdate names values
       ]
 
 emptyUpdate :: RFrameUpdate Text Value
-emptyUpdate = RFrameUpdate V.empty (V.replicate 2 (V.empty))
+emptyUpdate = RFrameUpdate V.empty (V.replicate 2 V.empty)
 
 fixtures :: HashMap Text (RFrameUpdate Text Value)
 fixtures = HM.fromList

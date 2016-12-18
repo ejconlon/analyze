@@ -1,6 +1,4 @@
-{-# LANGUAGE DeriveFoldable    #-}
 {-# LANGUAGE DeriveFunctor     #-}
-{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleInstances #-}
 
 module Analyze.RFrame where
@@ -85,14 +83,14 @@ update (RFrameUpdate uks uvs) (RFrame fks look fvs) = do
 dropCols :: Data k => HashSet k -> RFrame k v -> RFrame k v
 dropCols names (RFrame ks look vs) = RFrame ks' look' vs'
   where
-    (_, ks') = V.partition (flip HS.member names) ks
+    (_, ks') = V.partition (`HS.member` names) ks
     look' = makeLookup ks'
     vs' = assemble ks' look <$> vs
 
 keepCols :: Data k => HashSet k -> RFrame k v -> RFrame k v
 keepCols names (RFrame ks look vs) = RFrame ks' look' vs'
   where
-    (ks', _) = V.partition (flip HS.member names) ks
+    (ks', _) = V.partition (`HS.member` names) ks
     look' = makeLookup ks'
     vs' = assemble ks' look <$> vs
 
