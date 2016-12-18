@@ -12,8 +12,8 @@ import           Control.Monad.Catch (MonadThrow (..))
 import qualified Data.Aeson          as A
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
-import qualified Data.HashSet as HS
 import           Data.HashSet        (HashSet)
+import qualified Data.HashSet        as HS
 import           Data.Text           (Text)
 import qualified Data.Text           as T
 import           Data.Vector         (Vector)
@@ -21,9 +21,9 @@ import qualified Data.Vector         as V
 
 -- In-memory row-oriented frame
 data RFrame k v = RFrame
-  { _rframeKeys :: !(Vector k)
+  { _rframeKeys   :: !(Vector k)
   , _rframeLookup :: !(HashMap k Int)
-  , _rframeData :: !(Vector (Vector v))
+  , _rframeData   :: !(Vector (Vector v))
   } deriving (Eq, Show, Functor)
 
 instance A.ToJSON v => A.ToJSON (RFrame Text v) where

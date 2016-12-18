@@ -5,16 +5,16 @@
 module Analyze.Common where
 
 import           Control.Exception
+import           Control.Monad       (forM_, unless)
 import           Control.Monad.Catch (MonadThrow (..))
-import           Control.Monad (forM_, unless)
-import           Data.Hashable (Hashable)
+import           Data.Hashable       (Hashable)
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
-import qualified Data.HashSet as HS
-import           Data.HashSet (HashSet)
-import           Data.Typeable (Typeable)
-import qualified Data.Vector as V
-import           Data.Vector (Vector)
+import           Data.HashSet        (HashSet)
+import qualified Data.HashSet        as HS
+import           Data.Typeable       (Typeable)
+import           Data.Vector         (Vector)
+import qualified Data.Vector         as V
 
 type Data k = (Eq k, Hashable k, Show k, Typeable k)
 
@@ -56,13 +56,13 @@ checkSubset :: (Data k, MonadThrow m) => [k] -> HashSet k -> m ()
 checkSubset qs ks = forM_ qs (\q -> unless (HS.member q ks) (throwM (MissingKeyError q)))
 
 makeLookup :: Data k => Vector k -> HashMap k Int
-makeLookup = HM.fromList . flip zip [0..] . V.toList 
+makeLookup = HM.fromList . flip zip [0..] . V.toList
 
 runLookup :: (Data k, MonadThrow m) => HashMap k Int -> Vector v -> k -> m v
 runLookup look vs k =
   case HM.lookup k look >>= (vs V.!?) of
     Nothing -> throwM (MissingKeyError k)
-    Just v -> pure v
+    Just v  -> pure v
 
 assemble :: Data k => Vector k -> HashMap k Int -> Vector v -> Vector v
 assemble ks look vs = pick <$> ks

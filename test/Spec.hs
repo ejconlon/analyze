@@ -1,18 +1,18 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-import           Analyze.Common ((<&>))
-import qualified Analyze.Conversions as AC
-import qualified Analyze.Decoding as AD
-import qualified Analyze.RFrame as ARF
+import           Analyze.Common           ((<&>))
+import qualified Analyze.Conversions      as AC
+import qualified Analyze.Decoding         as AD
+import qualified Analyze.RFrame           as ARF
 import           Analyze.Values
 import           Control.Monad.Catch
-import qualified Data.HashSet as HS
-import qualified Data.HashMap.Strict as HM
-import qualified Data.Text as T
-import           Data.Text (Text)
-import qualified Data.Vector as V
-import           Data.Vector (Vector)
+import qualified Data.HashMap.Strict      as HM
+import qualified Data.HashSet             as HS
+import           Data.Text                (Text)
+import qualified Data.Text                as T
+import           Data.Vector              (Vector)
+import qualified Data.Vector              as V
 import           Datasets
 import           Fixtures
 import           Generation
@@ -39,7 +39,7 @@ testPropertyIO name g t = testProperty name (propertyIO . t <$> g)
 getUpdateFixture :: Text -> IO (ARF.RFrameUpdate Text Value)
 getUpdateFixture name =
   case HM.lookup name fixtures of
-    Just u -> return u
+    Just u  -> return u
     Nothing -> error ("fixture not found: " ++ (T.unpack name))
 
 

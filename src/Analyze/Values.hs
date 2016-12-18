@@ -1,9 +1,9 @@
 module Analyze.Values where
 
-import Analyze.Common (Data)
-import Control.Monad.Catch (Exception, MonadThrow (..))
-import Data.Text (Text)
-import Data.Typeable (Typeable)
+import           Analyze.Common      (Data)
+import           Control.Monad.Catch (Exception, MonadThrow (..))
+import           Data.Text           (Text)
+import           Data.Typeable       (Typeable)
 
 data ValueType =
     ValueTypeText

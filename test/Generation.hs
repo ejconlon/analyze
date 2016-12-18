@@ -1,15 +1,15 @@
 module Generation where
 
-import Analyze.Common (Data, makeLookup)
-import Analyze.RFrame (RFrame(..))
-import Analyze.Values
-import qualified Data.HashSet as HS
-import Data.HashSet (HashSet)
-import qualified Data.Text as T
-import Data.Text (Text)
-import qualified Data.Vector as V
-import Data.Vector (Vector)
-import Test.QuickCheck
+import           Analyze.Common  (Data, makeLookup)
+import           Analyze.RFrame  (RFrame (..))
+import           Analyze.Values
+import           Data.HashSet    (HashSet)
+import qualified Data.HashSet    as HS
+import           Data.Text       (Text)
+import qualified Data.Text       as T
+import           Data.Vector     (Vector)
+import qualified Data.Vector     as V
+import           Test.QuickCheck
 
 distinctGenSized :: Data k => Gen k -> Int -> Gen (HashSet k)
 distinctGenSized = go HS.empty
@@ -49,9 +49,9 @@ nameGen :: Gen Text
 nameGen = T.pack <$> listOf (choose ('a', 'z'))
 
 valueGen :: ValueType -> Gen Value
-valueGen ValueTypeText = ValueText <$> nameGen
+valueGen ValueTypeText    = ValueText <$> nameGen
 valueGen ValueTypeInteger = ValueInteger <$> arbitrary
-valueGen ValueTypeDouble = ValueDouble <$> arbitrary
+valueGen ValueTypeDouble  = ValueDouble <$> arbitrary
 
 valueTypeGen :: Gen ValueType
 valueTypeGen = arbitraryBoundedEnum

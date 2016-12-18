@@ -1,14 +1,14 @@
 module Analyze.Csv where
 
-import Analyze.Conversions (projectRows)
-import Analyze.RFrame (RFrame(..), RFrameUpdate(..), fromUpdate, empty)
-import Control.Monad.Catch (Exception, MonadThrow (..))
+import           Analyze.Conversions  (projectRows)
+import           Analyze.RFrame       (RFrame (..), RFrameUpdate (..), empty, fromUpdate)
+import           Control.Monad.Catch  (Exception, MonadThrow (..))
 import qualified Data.ByteString.Lazy as LBS
-import qualified Data.Csv as C
-import Data.Text (Text)
-import Data.Text.Encoding (decodeUtf8)
-import Data.Typeable (Typeable)
-import qualified Data.Vector as V
+import qualified Data.Csv             as C
+import           Data.Text            (Text)
+import           Data.Text.Encoding   (decodeUtf8)
+import           Data.Typeable        (Typeable)
+import qualified Data.Vector          as V
 
 data CsvError = CsvError String deriving (Eq, Show, Typeable)
 instance Exception CsvError
