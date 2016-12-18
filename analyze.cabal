@@ -19,6 +19,7 @@ library
                      , Analyze.Conversions
                      , Analyze.Csv
                      , Analyze.Decoding
+                     , Analyze.Ops
                      , Analyze.RFrame
                      , Analyze.Values
   build-depends:       base >= 4.9 && < 5
