@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 import           Analyze.Common           ((<&>))
@@ -134,7 +135,7 @@ testOneHot :: TestTree
 testOneHot = testCase "one hot" $ do
   color <- getFrameFixture "color"
   colorHot <- getFrameFixture "colorHot"
-  let actual = A.oneHot (\k (A.ValueText v) -> k <> v) "color" (A.ValueBool True) (A.ValueBool False) color
+  actual <- A.oneHot (\k (A.ValueText v) -> k <> "/" <> v) "color" (A.ValueBool True) (A.ValueBool False) color
   actual @?= colorHot
 
 -- Runner
@@ -150,7 +151,7 @@ tests = testGroup "Tests"
   , testUpdateAdd
   , testUpdateOverlap
   , testTitanic
-  --, testOneHot
+  , testOneHot
   ]
 
 main :: IO ()
