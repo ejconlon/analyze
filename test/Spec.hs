@@ -6,6 +6,7 @@ import qualified Analyze as A
 import           Control.Monad.Catch
 import qualified Data.HashMap.Strict      as HM
 import qualified Data.HashSet             as HS
+import           Data.Monoid              ((<>))
 import           Data.Text                (Text)
 import qualified Data.Text                as T
 import           Data.Vector              (Vector)
@@ -131,7 +132,10 @@ testTitanic = testCase "load titanic" $ do
 
 testOneHot :: TestTree
 testOneHot = testCase "one hot" $ do
-  return ()
+  color <- getFrameFixture "color"
+  colorHot <- getFrameFixture "colorHot"
+  let actual = A.oneHot (\k (A.ValueText v) -> k <> v) "color" (A.ValueBool True) (A.ValueBool False) color
+  actual @?= colorHot
 
 -- Runner
 
@@ -146,7 +150,7 @@ tests = testGroup "Tests"
   , testUpdateAdd
   , testUpdateOverlap
   , testTitanic
-  , testOneHot
+  --, testOneHot
   ]
 
 main :: IO ()
