@@ -2,10 +2,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 import           Analyze.Common           ((<&>))
-import qualified Analyze.Conversions      as AC
-import qualified Analyze.Decoding         as AD
-import qualified Analyze.RFrame           as ARF
-import           Analyze.Values
+import qualified Analyze as A
 import           Control.Monad.Catch
 import qualified Data.HashMap.Strict      as HM
 import qualified Data.HashSet             as HS
@@ -36,65 +33,65 @@ testPropertyIO name g t = testProperty name (propertyIO . t <$> g)
 
 -- Aux
 
-getUpdateFixture :: Text -> IO (ARF.RFrameUpdate Text Value)
+getUpdateFixture :: Text -> IO (A.RFrameUpdate Text A.Value)
 getUpdateFixture name =
   case HM.lookup name fixtures of
     Just u  -> return u
     Nothing -> error ("fixture not found: " ++ T.unpack name)
 
 
-getFrameFixture :: Text -> IO (ARF.RFrame Text Value)
-getFrameFixture name = ARF.fromUpdate =<< getUpdateFixture name
+getFrameFixture :: Text -> IO (A.RFrame Text A.Value)
+getFrameFixture name = A.fromUpdate =<< getUpdateFixture name
 
 -- Tests
 
 testFixture :: TestTree
 testFixture = testCase "fixture" $ do
   frame <- getFrameFixture "full"
-  ARF._rframeKeys frame @?= exampleHeader
-  ARF.numRows frame @?= 2
-  ARF.numCols frame @?= 3
+  A._rframeKeys frame @?= exampleHeader
+  A.numRows frame @?= 2
+  A.numCols frame @?= 3
 
 testRowDecode :: TestTree
 testRowDecode = testCase "rowDecode" $ do
   frame <- getFrameFixture "full"
-  let decoder = AD.requireWhere "score" floating <&> (*2)
-  result <- sequenceA =<< ARF.decode decoder frame
+  let decoder = A.requireWhere "score" A.floating <&> (*2)
+  result <- sequenceA =<< A.decode decoder frame
   V.fromList [10.0, 6.0] @?= result
 
 testDrop :: TestTree
 testDrop = testCase "drop" $ do
   original <- getFrameFixture "full"
   expected <- getFrameFixture "noName"
-  ARF.numCols original @?= 3
-  ARF.numCols expected @?= 2
+  A.numCols original @?= 3
+  A.numCols expected @?= 2
   let names = HS.singleton "name"
-  let actual = ARF.dropCols (`HS.member` names) original
-  ARF._rframeKeys actual @?= ARF._rframeKeys expected
+  let actual = A.dropCols (`HS.member` names) original
+  A._rframeKeys actual @?= A._rframeKeys expected
 
 testKeep :: TestTree
 testKeep = testCase "keep" $ do
   original <- getFrameFixture "full"
   expected <- getFrameFixture "noName"
-  ARF.numCols original @?= 3
-  ARF.numCols expected @?= 2
+  A.numCols original @?= 3
+  A.numCols expected @?= 2
   let names = HS.fromList ["id", "score"]
-  let actual = ARF.keepCols (`HS.member` names) original
-  ARF._rframeKeys actual @?= ARF._rframeKeys expected
+  let actual = A.keepCols (`HS.member` names) original
+  A._rframeKeys actual @?= A._rframeKeys expected
 
 testUpdateEmpty :: TestTree
 testUpdateEmpty = testCase "update empty" $ do
   update <- getUpdateFixture "full"
-  empty <- ARF.fromUpdate =<< getUpdateFixture "empty"
-  expected <- ARF.fromUpdate update
-  actual <- ARF.update update empty
+  empty <- A.fromUpdate =<< getUpdateFixture "empty"
+  expected <- A.fromUpdate update
+  actual <- A.update update empty
   actual @?= expected
 
 testUpdateEmpty2 :: TestTree
 testUpdateEmpty2 = testCase "update empty 2" $ do
   frame <- getFrameFixture "full"
   update <- getUpdateFixture "empty"
-  actual <- ARF.update update frame
+  actual <- A.update update frame
   actual @?= frame
 
 testUpdateAdd :: TestTree
@@ -102,7 +99,7 @@ testUpdateAdd = testCase "update add" $ do
   frame <- getFrameFixture "full"
   update <- getUpdateFixture "color"
   expected <- getFrameFixture "fullColor"
-  actual <- ARF.update update frame
+  actual <- A.update update frame
   actual @?= expected
 
 testUpdateOverlap :: TestTree
@@ -110,7 +107,7 @@ testUpdateOverlap = testCase "update overlap" $ do
   frame <- getFrameFixture "full"
   update <- getUpdateFixture "overlap"
   expected <- getFrameFixture "fullOverlap"
-  actual <- ARF.update update frame
+  actual <- A.update update frame
   actual @?= expected
 
 testTitanic :: TestTree
@@ -129,8 +126,12 @@ testTitanic = testCase "load titanic" $ do
         , "Cabin"
         , "Embarked"
         ]
-  ARF._rframeKeys frame @?= expectedCols
-  ARF.numRows frame @?= 418
+  A._rframeKeys frame @?= expectedCols
+  A.numRows frame @?= 418
+
+testOneHot :: TestTree
+testOneHot = testCase "one hot" $ do
+  return ()
 
 -- Runner
 
@@ -145,6 +146,7 @@ tests = testGroup "Tests"
   , testUpdateAdd
   , testUpdateOverlap
   , testTitanic
+  , testOneHot
   ]
 
 main :: IO ()
