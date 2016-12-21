@@ -115,3 +115,6 @@ appendRows (RFrame ks0 look0 vs0) (RFrame ks1 look1 vs1) = do
 
 extendCols :: (Data k, MonadThrow m) => RFrame k v -> RFrame k v -> m (RFrame k v)
 extendCols f g = update (toUpdate g) f
+
+takeRows :: Int -> RFrame k v -> RFrame k v
+takeRows n (RFrame ks look vs) = RFrame ks look (V.map (V.take n) vs)
