@@ -12,7 +12,6 @@ import           Data.Text                (Text)
 import qualified Data.Text                as T
 import           Data.Vector              (Vector)
 import qualified Data.Vector              as V
-import           Datasets
 import           Fixtures
 import           Generation
 import           Test.QuickCheck
@@ -114,7 +113,7 @@ testUpdateOverlap = testCase "update overlap" $ do
 
 testTitanic :: TestTree
 testTitanic = testCase "load titanic" $ do
-  frame <- datasetWithHeader "titanic" "test"
+  frame <- A.datasetWithHeader "titanic" "test"
   let expectedCols = V.fromList
         [ "PassengerId"
         , "Pclass"

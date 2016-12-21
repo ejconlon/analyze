@@ -1,6 +1,6 @@
 name:                analyze
 version:             0.1.0.0
-synopsis:            Initial project template from stack
+synopsis:            making data science easy and safe with data frames
 description:         Please see README.md
 homepage:            https://github.com/ejconlon/analyze#readme
 license:             BSD3
@@ -8,10 +8,11 @@ license-file:        LICENSE
 author:              Eric Conlon
 maintainer:          ejconlon@gmail.com
 copyright:           2016 Eric Conlon
-category:            Web
+category:            Data Science
 build-type:          Simple
--- extra-source-files:
 cabal-version:       >=1.10
+Data-Files:          datasets/titanic/test.csv
+                   , datasets/titanic/train.csv 
 
 library
   hs-source-dirs:      src
@@ -19,11 +20,13 @@ library
                      , Analyze.Common
                      , Analyze.Conversions
                      , Analyze.Csv
+                     , Analyze.Datasets
                      , Analyze.Decoding
                      , Analyze.Html
                      , Analyze.Ops
                      , Analyze.RFrame
                      , Analyze.Values
+  other-modules:       Paths_analyze
   build-depends:       base >= 4.9 && < 5
                      , aeson
                      , bytestring
@@ -44,8 +47,7 @@ test-suite analyze-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
-  other-modules:       Datasets
-                     , Fixtures
+  other-modules:       Fixtures
                      , Generation
   build-depends:       base
                      , analyze
