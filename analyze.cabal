@@ -37,7 +37,6 @@ library
                      , free
                      , hashable
                      , lucid
-                     , profunctors
                      , text
                      , unordered-containers
                      , vector

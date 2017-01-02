@@ -12,12 +12,8 @@ module Analyze.Decoding
 import           Analyze.Common           (Data)
 import           Control.Applicative.Free (Ap (..), liftAp)
 import           Data.Maybe               (fromMaybe)
-import           Data.Profunctor          (Profunctor (..))
 
 data Arg m k v a = Arg k (v -> m a) deriving (Functor)
-
-instance Functor m => Profunctor (Arg m k) where
-  dimap l r (Arg k f) = Arg k (\u -> r <$> f (l u))
 
 newtype Decoder m k v a = Decoder (Ap (Arg m k v) a) deriving (Functor, Applicative)
 
@@ -37,7 +33,7 @@ decoderKeys (Decoder x) = go x
     go (Pure _)            = []
     go (Ap (Arg k _) rest) = k : go rest
 
--- This is pretty sensitive to 'lets'
+-- This is pretty sensitive to let bindings
 apRow :: (Data k, Monad m) => Ap (Arg m k v) a -> (k -> m v) -> m a
 apRow (Pure a) _ = pure a
 apRow (Ap (Arg k f) rest) row = do
