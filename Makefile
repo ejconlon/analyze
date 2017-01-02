@@ -19,3 +19,6 @@ notebook-deps:
 
 notebook:
 	cd notebooks && open -a /Applications/HyperHaskell.app Demo.hhs
+
+notebook-eval:
+	cd notebooks && hyper-eval --source=Demo.hhs --dest=../output/Demo.html
