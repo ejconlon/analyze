@@ -117,4 +117,4 @@ extendCols :: (Data k, MonadThrow m) => RFrame k v -> RFrame k v -> m (RFrame k 
 extendCols f g = update (toUpdate g) f
 
 takeRows :: Int -> RFrame k v -> RFrame k v
-takeRows n (RFrame ks look vs) = RFrame ks look (V.map (V.take n) vs)
+takeRows n (RFrame ks look vs) = RFrame ks look (V.take n vs)

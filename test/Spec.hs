@@ -111,6 +111,16 @@ testUpdateOverlap = testCase "update overlap" $ do
   actual <- A.update update frame
   actual @?= expected
 
+testTakeRows :: TestTree
+testTakeRows = testCase "takeRows" $ do
+  before <- getFrameFixture "color"
+  A.numRows before @?= 2
+  expected <- getFrameFixture "colorOne"
+  A.numRows expected @?= 1
+  let actual = A.takeRows 1 before
+  --A.numRows actual @?= 1
+  actual @?= expected
+
 testTitanic :: TestTree
 testTitanic = testCase "load titanic" $ do
   frame <- A.datasetWithHeader "titanic" "test"
@@ -149,6 +159,7 @@ tests = testGroup "Tests"
   , testUpdateEmpty2
   , testUpdateAdd
   , testUpdateOverlap
+  , testTakeRows
   , testTitanic
   , testOneHot
   ]

@@ -8,9 +8,10 @@ import           Data.Text            (Text)
 import qualified Data.Text            as T
 import Paths_analyze
 
-datasetWithHeader :: Text -> Text -> IO (RFrame Text Text)
+-- TODO String to Text
+datasetWithHeader :: String -> String -> IO (RFrame Text Text)
 datasetWithHeader a b = do
-  let path = "datasets/" ++ T.unpack a ++ "/" ++ T.unpack b ++ ".csv"
+  let path = "datasets/" ++ {-T.unpack-} a ++ "/" ++ {-T.unpack-} b ++ ".csv"
   newPath <- getDataFileName path
   bs <- LBS.readFile newPath
   decodeWithHeader bs

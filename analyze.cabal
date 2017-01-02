@@ -29,6 +29,7 @@ library
   other-modules:       Paths_analyze
   build-depends:       base >= 4.9 && < 5
                      , aeson
+                     , binary
                      , bytestring
                      , cassava
                      , exceptions

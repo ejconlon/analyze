@@ -72,6 +72,14 @@ colorUpdate = RFrameUpdate names values
       , V.fromList [ValueText "orange"]
       ]
 
+colorOneUpdate :: RFrameUpdate Text Value
+colorOneUpdate = RFrameUpdate names values
+  where
+    names = V.fromList ["color"]
+    values = V.fromList
+      [ V.fromList [ValueText "purple"]
+      ]
+
 colorHotUpdate :: RFrameUpdate Text Value
 colorHotUpdate = RFrameUpdate names values
   where
@@ -116,6 +124,7 @@ fixtures = HM.fromList
   [ ("full", fullUpdate)
   , ("noName", noNameUpdate)
   , ("color", colorUpdate)
+  , ("colorOne", colorOneUpdate)
   , ("colorHot", colorHotUpdate)
   , ("empty", emptyUpdate)
   , ("fullColor", fullColorUpdate)
