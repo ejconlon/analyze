@@ -1,8 +1,8 @@
 module Analyze.Html where
 
-import Control.Monad (forM_)
-import Analyze.RFrame (RFrame(..))
-import qualified Lucid as L
+import           Analyze.RFrame (RFrame (..))
+import           Control.Monad  (forM_)
+import qualified Lucid          as L
 
 renderHtml :: (L.ToHtml k, L.ToHtml v) => RFrame k v -> L.Html ()
 renderHtml (RFrame ks _ vs) =

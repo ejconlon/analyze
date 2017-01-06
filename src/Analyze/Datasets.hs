@@ -9,7 +9,7 @@ import           Control.Monad.Catch  (MonadThrow (..))
 import qualified Data.ByteString.Lazy as LBS
 import           Data.Text            (Text)
 import qualified Data.Text            as T
-import Paths_analyze
+import           Paths_analyze
 
 -- | Load an included dataset.
 datasetWithHeader :: Text -> Text -> IO (RFrame Text Text)

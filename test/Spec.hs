@@ -2,8 +2,8 @@
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
+import qualified Analyze                  as A
 import           Analyze.Common           ((<&>))
-import qualified Analyze as A
 import           Control.Monad.Catch
 import qualified Data.HashMap.Strict      as HM
 import qualified Data.HashSet             as HS

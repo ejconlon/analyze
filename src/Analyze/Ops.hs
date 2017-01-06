@@ -2,12 +2,12 @@ module Analyze.Ops
   ( oneHot
   ) where
 
-import Analyze.Common (Data)
-import Analyze.RFrame (RFrame(..), RFrameUpdate(..), col, splitCols, update)
-import Control.Monad.Catch (MonadThrow(..))
-import qualified Data.HashSet as HS
-import qualified Data.Vector as V
-import Data.Vector (Vector)
+import           Analyze.Common      (Data)
+import           Analyze.RFrame      (RFrame (..), RFrameUpdate (..), col, splitCols, update)
+import           Control.Monad.Catch (MonadThrow (..))
+import qualified Data.HashSet        as HS
+import           Data.Vector         (Vector)
+import qualified Data.Vector         as V
 
 uniq :: Data k => Vector k -> Vector k
 uniq ks = V.reverse (V.fromList newKsR)

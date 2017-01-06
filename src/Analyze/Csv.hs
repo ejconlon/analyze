@@ -4,8 +4,8 @@ module Analyze.Csv where
 import           Analyze.Conversions  (projectRows)
 import           Analyze.RFrame       (RFrame (..), RFrameUpdate (..), empty, fromUpdate)
 import           Control.Monad.Catch  (Exception, MonadThrow (..))
-import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Binary.Builder  as B
+import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Csv             as C
 import qualified Data.Csv.Builder     as CB
 import           Data.Text            (Text)

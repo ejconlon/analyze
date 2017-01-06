@@ -23,7 +23,7 @@ valueToType :: Value -> ValueType
 valueToType (ValueText _)    = ValueTypeText
 valueToType (ValueInteger _) = ValueTypeInteger
 valueToType (ValueDouble _)  = ValueTypeDouble
-valueToType (ValueBool _) = ValueTypeBool
+valueToType (ValueBool _)    = ValueTypeBool
 
 getText :: Value -> Maybe Text
 getText (ValueText s) = Just s
@@ -39,7 +39,7 @@ getDouble _               = Nothing
 
 getBool :: Value -> Maybe Bool
 getBool (ValueBool b) = Just b
-getBool _ = Nothing
+getBool _             = Nothing
 
 data ValueTypeError k = ValueTypeError k ValueType Value deriving (Show, Eq, Typeable)
 instance (Show k, Typeable k) => Exception (ValueTypeError k)
