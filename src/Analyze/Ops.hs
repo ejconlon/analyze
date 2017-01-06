@@ -1,3 +1,4 @@
+-- | Various data-sciencey functions.
 module Analyze.Ops
   ( oneHot
   ) where
@@ -21,6 +22,7 @@ uniq ks = V.reverse (V.fromList newKsR)
 match :: Eq k => Vector k -> v -> v -> k -> Vector v
 match ks yesVal noVal tk = V.map (\k -> if k == tk then yesVal else noVal) ks
 
+-- | One-hot encode a given column. (See tests for usage.)
 oneHot :: (Data k, MonadThrow m) => (k -> v -> k) -> k -> v -> v -> RFrame k v -> m (RFrame k v)
 oneHot combine key yesVal noVal frame = do
   let (target, cold) = splitCols (== key) frame
