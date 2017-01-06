@@ -1,3 +1,6 @@
+{-# LANGUAGE OverloadedStrings #-}
+
+-- | Functions to work with included datasets.
 module Analyze.Datasets where
 
 import           Analyze.Csv
@@ -8,10 +11,18 @@ import           Data.Text            (Text)
 import qualified Data.Text            as T
 import Paths_analyze
 
--- TODO String to Text
-datasetWithHeader :: String -> String -> IO (RFrame Text Text)
+-- | Load an included dataset.
+datasetWithHeader :: Text -> Text -> IO (RFrame Text Text)
 datasetWithHeader a b = do
-  let path = "datasets/" ++ {-T.unpack-} a ++ "/" ++ {-T.unpack-} b ++ ".csv"
+  let path = "datasets/" ++ T.unpack a ++ "/" ++ T.unpack b ++ ".csv"
   newPath <- getDataFileName path
   bs <- LBS.readFile newPath
   decodeWithHeader bs
+
+-- | Load the "train" partition of the "titanic" dataset.
+titanicTrain :: IO (RFrame Text Text)
+titanicTrain = datasetWithHeader "titanic" "train"
+
+-- | Load the "test" partition of the "titanic" dataset.
+titanicTest :: IO (RFrame Text Text)
+titanicTest = datasetWithHeader "titanic" "test"

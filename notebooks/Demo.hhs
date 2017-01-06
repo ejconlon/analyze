@@ -1,7 +1,7 @@
 {
   "version": "0.1.0.0",
   "cells": [
-    "let x = datasetWithHeader \"titanic\" \"test\"\n    y = takeRows 10 <$> x\nin html . toStrict . renderText . renderHtml <$> y"
+    "let x = titanicTest\n    y = takeRows 10 <$> x\nin html . toStrict . renderText . renderHtml <$> y"
   ],
   "importModules": "Analyze\nData.Text.Lazy\nLucid",
   "loadFiles": "",

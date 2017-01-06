@@ -1,3 +1,4 @@
+-- | Simple structural conversions.
 module Analyze.Conversions
   ( projectRow
   , projectRows
@@ -11,6 +12,7 @@ import qualified Data.HashMap.Strict as HM
 import           Data.Vector         (Vector)
 import qualified Data.Vector         as V
 
+-- | Projects values out of the map according to the given key order.
 projectRow :: (Data k, MonadThrow m) => Vector k -> HashMap k v -> m (Vector v)
 projectRow ks row = V.mapM f ks
   where
@@ -19,7 +21,7 @@ projectRow ks row = V.mapM f ks
         Nothing -> throwM (MissingKeyError k)
         Just v  -> pure v
 
--- kind of the inverse of rframeIter
+-- | Projects an 'RFrame' out of many maps according to the given key order.
 projectRows :: (Data k, MonadThrow m) => Vector k -> Vector (HashMap k v) -> m (RFrame k v)
 projectRows ks rs = do
   vs <- V.mapM (projectRow ks) rs
