@@ -24,15 +24,10 @@ data RFrame k v = RFrame
   , _rframeData   :: !(Vector (Vector v))
   } deriving (Eq, Show, Functor)
 
--- instance A.ToJSON v => A.ToJSON (RFrame Text v) where
---   toJSON frame = A.Array (iter (\ks _ _ v -> A.toJSON (HM.fromList (V.toList (V.zip ks v)))) frame)
-
 data RFrameUpdate k v = RFrameUpdate
   { _rframeUpdateKeys :: !(Vector k)
   , _rframeUpdateData :: !(Vector (Vector v))
   } deriving (Eq, Show, Functor)
-
--- TODO ToJSON and FromJSON for RFrameUpdate
 
 type RFrameMap k v a = Vector k -> HashMap k Int -> Int -> Vector v -> a
 
@@ -54,9 +49,6 @@ numCols (RFrame ks _ _) = V.length ks
 
 numRows :: RFrame k v -> Int
 numRows (RFrame _ _ vs) = V.length vs
-
--- iter :: Eq k => RFrameMap k v a -> RFrame k v -> Vector a
--- iter m (RFrame ks look vs) = undefined
 
 col :: (Data k, MonadThrow m) => k -> RFrame k v -> m (Vector v)
 col k (RFrame _ look vs) = V.mapM (\v -> runLookup look v k) vs
@@ -86,9 +78,6 @@ update (RFrameUpdate uks uvs) (RFrame fks look fvs) = do
           look' = makeLookup ks'
           vs' = V.zipWith (runIndexedLookup kis) fvs uvs
       return (RFrame ks' look' vs')
-
--- bind :: (Data k, Data j, MonadThrow m) => Vector j -> RFrameBind k v w -> RFrame k v -> m (RFrame j w)
--- bind = undefined
 
 splitCols :: Data k => (k -> Bool) -> RFrame k v -> (RFrame k v, RFrame k v)
 splitCols p (RFrame ks look vs) = (RFrame keepKs keepLook keepVs, RFrame dropKs dropLook dropVs)

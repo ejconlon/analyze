@@ -30,7 +30,3 @@ oneHot combine key yesVal noVal frame = do
       newVs = V.map (match newKs yesVal noVal) cookedKs
       hot = RFrameUpdate newKs newVs
   update hot cold
-
-
--- unHot :: (Data k, MonadThrow m) => (k -> m (Maybe (k, v))) -> k -> RFrame k v -> RFrame k v
--- unHot = undefined
