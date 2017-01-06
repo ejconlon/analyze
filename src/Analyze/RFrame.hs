@@ -110,9 +110,9 @@ splitCols p (RFrame ks look vs) = (RFrame keepKs keepLook keepVs, RFrame dropKs 
   where
     (keepKs, dropKs) = V.partition p ks
     keepLook = makeLookup keepKs
-    keepVs = assemble keepKs look <$> vs
+    keepVs = reorder keepKs look <$> vs
     dropLook = makeLookup dropKs
-    dropVs = assemble dropKs look <$> vs
+    dropVs = reorder dropKs look <$> vs
 
 -- | Drop columns in an 'RFrame' by a predicate.
 dropCols :: Data k => (k -> Bool) -> RFrame k v -> RFrame k v
