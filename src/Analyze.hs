@@ -1,4 +1,4 @@
--- | See 'Analyze.RFrame'.
+-- | See "Analyze.RFrame".
 module Analyze
   ( module X
   ) where
