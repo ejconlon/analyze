@@ -43,6 +43,14 @@ type RFrameMap k v a = Vector k -> HashMap k Int -> Int -> Vector v -> a
 -- | Alias for a row filter
 type RFrameFilter k v = RFrameMap k v Bool
 
+-- | Prettier alias for getting the keys of an 'RFrame'
+rframeKeys :: RFrame k v -> Vector k
+rframeKeys = _rframeKeys
+
+-- | Prettier alias for getting the data matrix of an 'RFrame'
+rframeData :: RFrame k v -> Vector (Vector v)
+rframeData = _rframeData
+
 -- | An empty frame with no rows or columns
 empty :: RFrame k v
 empty = RFrame V.empty HM.empty V.empty
@@ -137,3 +145,11 @@ extendCols f g = update (toUpdate g) f
 -- | Takes first 'n' rows of an 'RFrame'.
 takeRows :: Int -> RFrame k v -> RFrame k v
 takeRows n (RFrame ks look vs) = RFrame ks look (V.take n vs)
+
+-- | Adds a 'Vector' column to the 'RFrame'
+addColumn :: (Data k, MonadThrow m) => RFrame k v -> k -> Vector v -> m (RFrame k v)                         
+addColumn rf name v = do
+  c <- newRFrameColumn name $ V.singleton <$> v
+  extendCols rf c
+ where
+  newRFrameColumn rfName = fromUpdate . RFrameUpdate (V.singleton rfName)

@@ -121,6 +121,16 @@ testTakeRows = testCase "takeRows" $ do
   --A.numRows actual @?= 1
   actual @?= expected
 
+testAddColumn :: TestTree
+testAddColumn = testCase "add column" $ do
+  before <- getFrameFixture "color"
+  A.numCols before @?= 1
+  expected <- getFrameFixture "colorSpanish"
+  A.numCols expected @?= 2
+  actual <- A.addColumn before "spanishColor" (V.fromList [ A.ValueText "lila", A.ValueText "naranja"])
+  --A.numRows actual @?= 1
+  actual @?= expected
+
 testTitanic :: TestTree
 testTitanic = testCase "load titanic" $ do
   frame <- A.datasetWithHeader "titanic" "test"
@@ -160,6 +170,7 @@ tests = testGroup "Tests"
   , testUpdateAdd
   , testUpdateOverlap
   , testTakeRows
+  , testAddColumn
   , testTitanic
   , testOneHot
   ]
